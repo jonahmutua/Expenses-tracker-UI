@@ -1,0 +1,62 @@
+<mat-card class="expense-card">
+  <mat-card-header class="card-header">
+    <mat-card-title>Expenses Summary</mat-card-title>
+    <span class="spacer"></span>
+    <button mat-button class="add-expense-btn" (click)="openAddDialog()">Add Expense</button>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="table-container">
+      @if (expenses() && expenses().length > 0) {
+      <table mat-table [dataSource]="expenses()" class="mat-elevation-z2 custom-table">
+        <!-- Expense Type -->
+        <ng-container matColumnDef="type">
+          <th mat-header-cell *matHeaderCellDef>Expense Type</th>
+          <td mat-cell *matCellDef="let element">
+            {{ element.expenseType === 1 || element.expenseType === '1' ? 'Income' : 'Expense' }}
+          </td>
+        </ng-container>
+
+        <!-- Category -->
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let element">{{ element.category }}</td>
+        </ng-container>
+
+        <!-- Amount -->
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Amount</th>
+          <td mat-cell *matCellDef="let element">{{ element.amount | currency : 'KES' }}</td>
+        </ng-container>
+
+        <!-- Last Updated -->
+        <ng-container matColumnDef="lastUpdatedAt">
+          <th mat-header-cell *matHeaderCellDef>lastUpdatedAt</th>
+          <td mat-cell *matCellDef="let element">{{ element.date }}</td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let element">
+            <button mat-button color="primary" (click)="openEditDialog(element)">Edit</button>
+            <button mat-button color="warn" (click)="deleteExpense(element)">
+              Delete
+              <!--<mat-icon>delete</mat-icon>-->
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+      } @else {
+      <!-- No expeses -->
+      <div class="no-expenses">
+       <!--<mat-icon color="accent">info</mat-icon>-->
+        No expenses to show
+      </div>
+      }
+    </div>
+  </mat-card-content>
+</mat-card>

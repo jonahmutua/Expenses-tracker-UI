@@ -1,0 +1,128 @@
+<div class="signup-container">
+  <mat-card class="signup-card">
+    <div>
+      <h3 class="text-center mb-3 text-primary">Signup</h3>
+    </div>
+    <!-- Registration form -->
+    <form class="signup-form" [formGroup]="signupForm">
+      <!--First Name-->
+      <mat-form-field class="form-field" appearance="outline">
+        <mat-label>First Name</mat-label>
+        <input
+          type="text"
+          matInput
+          formControlName="firstName"
+          placeholder="Enter first name"
+          [errorStateMatcher]="firstNameErrorMatcher"
+          (blur)="handler.onBlur('firstName')"
+        />
+        @switch (true) { 
+            @case ( handler.showErrors('firstName') && signupForm.get('firstName')?.hasError( 'hasWhiteSpace') ) {
+                <mat-error>White spaces are not allowed. </mat-error>
+            } 
+            @case ( handler.showErrors('firstName') && signupForm.get('firstName')?.hasError('required') ) {
+                <mat-error>First Name is <strong>required</strong> </mat-error>
+            } 
+        }
+      </mat-form-field>
+
+      <!-- Last name -->
+      <mat-form-field class="form-field" appearance="outline">
+        <mat-label>Last Name</mat-label>
+        <input
+          type="text"
+          matInput
+          formControlName="lastName"
+          placeholder="Enter last name"
+          [errorStateMatcher]="lastNameErrorMatcher"
+          (blur)="handler.onBlur('lastName')"
+        />
+        @switch (true) {
+            @case ( handler.showErrors('lastName') && signupForm.get('lastName')?.hasError( 'required') ) {
+                <mat-error>Last name is <strong>required</strong> </mat-error>
+            }
+            @case ( handler.showErrors('lastName') && signupForm.get('lastName')?.hasError( 'hasWhiteSpace') ) {
+                <mat-error>White spaces not allowed. </mat-error>
+            }
+        }
+      </mat-form-field>
+
+      <!-- Email -->
+      <mat-form-field class="form-field" appearance="outline">
+        <mat-label>email</mat-label>
+        <input
+          type="email"
+          matInput
+          formControlName="email"
+          placeholder="Enter email"
+          [errorStateMatcher]="emailErrorMatcher"
+          (blur)="handler.onBlur('email')"
+        />
+        @switch (true) {
+            @case ( handler.showErrors('email') && signupForm.get('email')?.hasError('email') && !signupForm.get('email')?.hasError( 'required' ) ) {
+            <mat-error>Please Enter a valid email address </mat-error>
+            } 
+            
+            @case ( handler.showErrors('email') && signupForm.get('email')?.hasError( 'required') ) {
+            <mat-error>Email is <strong>required</strong> </mat-error>
+            }
+            
+        }
+      </mat-form-field>
+
+      <!-- Password -->
+      <mat-form-field class="form-field" appearance="outline">
+        <mat-label>Password</mat-label>
+        <input
+          type="password"
+          matInput
+          formControlName="password"
+          placeholder="password"
+          [errorStateMatcher]="passwordErrorMatcher"
+          (blur)="handler.onBlur('password')"
+        />
+        @if ( handler.showErrors('password') && signupForm.get('password')?.hasError( 'required') )
+        {
+        <mat-error>Email is <strong>required</strong> </mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Confirm Password -->
+      <mat-form-field class="form-field" appearance="outline">
+        <mat-label>Confirm password</mat-label>
+        <input
+          type="password"
+          matInput
+          formControlName="confirmPassword"
+          placeholder="Cornfirm password"
+          [errorStateMatcher]="passwordMismatchErrorMatcher"
+          (blur)="handler.onBlur('confirmPassword')"
+        />
+        @if ( handler.showErrors('confirmPassword') && signupForm.get('confirmPassword')?.hasError(
+        'required') ) {
+        <mat-error>Password is <strong>required</strong> </mat-error>
+        } @if ( handler.showErrors('confirmPassword') &&
+        signupForm.get('confirmPassword')?.hasError( 'fieldMisMatch') ) {
+        <mat-error>Password mismatch! </mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Submit Button -->
+      <button
+        class="btn btn-primary mb-3 w-100"
+        type="submit"
+        [disabled]="signupForm.invalid"
+        (click)="register()"
+      >
+        Submit
+      </button>
+
+      <!-- Already Registered -->
+      <div class="text-center mt-3">
+        <span>Already have an account?</span>
+        <a routerLink="/login" class="text-primary fw-semibold">Login here. </a>
+      </div>
+      
+    </form>
+  </mat-card>
+</div>

@@ -1,0 +1,15 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+  min-width: 300px;
+}
+
+.dialog-content mat-form-field:first-child {
+  margin-top: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
