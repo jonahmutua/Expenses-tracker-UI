@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { LoginRequest } from './login.model';
-import { toSignal } from '@angular/core/rxjs-interop';
+
 
 @Component({
   selector: 'et-login',
@@ -48,12 +48,9 @@ export class LoginComponent {
       const {token, error} = this.authService.loginResponse();
 
       // redirect on login success  ( tokenn exists and no error)
-      if (token && !error) {
-        console.log("Logincomponent | effect | login succeess.")
-        localStorage.removeItem('auth_token');
-        this.router.navigate(['/expenses']); /* can navigate to Home page */
-      }else{
-        console.log("Logincomponent | effect | login fail.", token, error)
+      if (token && !error)  {
+        //localStorage.removeItem('auth_token'); /* TODO: Remove this line after component testing */
+        this.router.navigate(['/expenses']); /* TODO: best  to navigate to Home page */
       }
 
     });
@@ -79,7 +76,7 @@ export class LoginComponent {
 
     this.authService.login(loginRequest);
 
-    this.loginForm.reset();
+    if( !this.authService.isLoading() ) this.loginForm.reset();
     
     console.log('Login request sent for user: ', JSON.stringify(loginRequest));
   }

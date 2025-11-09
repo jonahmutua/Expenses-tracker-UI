@@ -12,6 +12,7 @@ import { ExpenseEditDialogComponent } from '../expense-edit-dialog/expense-edit-
 import { toSignal } from '@angular/core/rxjs-interop';
 import { disableDebugTools } from '@angular/platform-browser';
 import { Observable } from 'rxjs';
+import { SnackbarService } from '../../utils/snackbar.service';
 
 @Component(
     {
@@ -28,6 +29,8 @@ export class ExpenseListComponent  {
    
 
     expenseService = inject( ExpenseService);
+
+    snackbarService = inject(SnackbarService);
 
     // Reactive expense list 
     expenses: Signal<Expense[]> = this.expenseService.expenses;

@@ -7,3 +7,38 @@
 
 /* Angular Material theme (choose one) */
 @import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+
+/* SNACK BAR */
+
+.snackbar-error .mdc-snackbar__surface {
+  background-color: #ee4343 !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+.snackbar-error .mat-mdc-snack-bar-action .mdc-button__ripple::before,
+.snackbar-error .mat-mdc-snack-bar-action .mdc-button__ripple::after {
+  background-color: rgba(255, 255, 255, 0.2) !important; /* subtle white ripple */
+}
+/*Snackbar Dismiss Button */
+.snackbar-error .mdc-button__label {
+  color: #fff !important; /* white text for dismiss button */
+  font-weight: 600;
+}
+
+.snackbar-success .mdc-snackbar__surface{
+  background-color: #388e3c !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+/* Snackbar Dismiss Button */
+.snackbar-success .mdc-button__label {
+  color: #fff !important; /* white text for dismiss button */
+  font-weight: 600;
+}
+
+.snackbar-success .mat-mdc-snack-bar-action .mdc-button__ripple::before,
+.snackbar-success .mat-mdc-snack-bar-action .mdc-button__ripple::after {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
