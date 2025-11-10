@@ -31,7 +31,7 @@ export class HttpErrorService {
         return 'Server error. Please try again later.';
       default:
         return `Unexpected error: ${error.message}`;
-    }
+  }
    
   }
 

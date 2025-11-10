@@ -26,15 +26,17 @@ import { environment } from '../environments/environment'; /* Ensure to import t
   providedIn: 'root',
 })
 export class AuthService {
-  /* tokens as signals  */
+  
+  // token as signal 
   auth_token_sig = signal<string | null>(null);
+
   //refresh_token_sig = signal<srting | null >( null); // for now is unused
   loginResponse = signal<LoginResponse>({ token: null, message: null, error: false });
 
   isLoading = signal<boolean>(false);
 
   // computed signal - automatically updates every time loginResponse changes
-  isAuthenticatedSignal = computed(() => this.isAuthenticated());
+  isAuthenticatedSignal = computed(() => !!this.loginResponse().token);
 
   private http = inject(HttpClient);
 
@@ -56,6 +58,7 @@ export class AuthService {
       const token = this.loginResponse().token;
       this.setToken(token);
     });
+
   }
 
   //  automatically updates when triggerd
@@ -83,27 +86,22 @@ export class AuthService {
       // watch for loginSignal changes and update loginResponse signal ( our main signal)
       effect(() => {
         const res = loginSignal();
-
         if (!res?.token && !res?.error) return; // ignore initial dummy  values
-
-        // real backend update ocurred, update
-        this.loginResponse.set({
-          token: res.token,
-          message: res.message,
-          error: res.error ?? false,
-        });
-        // loading is complete
-        this.isLoading.set(false);
+        this.updateLoginResponse( res );
       });
+
     });
   }
 
-  private _login(loginRequest: LoginRequest): Observable<LoginResponse | null> {
+  logout(): void{
+   this.setToken(null);
+   this.loginResponse.set({ token: null, message: null, error: false });
+  }
 
+  private _login(loginRequest: LoginRequest): Observable<LoginResponse | null> {
     const targetUrl =   `${this.baseUrl}${environment.endpoints.login}`;
    
     return this.http.post<LoginResponse | null>(targetUrl, loginRequest).pipe(
-      //`${this.baseUrl}/login`
       catchError((err) => {
         const errMsg = this.errorHandler(err);
         return of({ token: null, message: errMsg, error: true } as LoginResponse) ;
@@ -112,6 +110,16 @@ export class AuthService {
     
   }
 
+  private updateLoginResponse(res: LoginResponse){
+    //real backend update ocurred, update
+        this.loginResponse.set({
+          token: res.token,
+          message: res.message,
+          error: res.error ?? false,
+        });
+        // loading is complete
+        this.isLoading.set(false);
+  }
   // save token after login
   saveToken(token: string): void {
     localStorage.setItem('auth_token', token);
@@ -124,7 +132,7 @@ export class AuthService {
 
   // quick check if authenticated
   isAuthenticated(): boolean {
-    return !!this.loginResponse().token;
+    return this.isAuthenticatedSignal();
   }
 
   private errorHandler(err: HttpErrorResponse): string {
@@ -132,10 +140,14 @@ export class AuthService {
   }
 
   private setToken(token: string | null): void {
-    // For now, use localStorage
-    if (token) localStorage.setItem('auth_token', token);
-    else localStorage.removeItem('auth_token');
-
+    // use localStorage to store the token - although unsafe, we shall change to cookies
+    if (token){
+      localStorage.setItem('auth_token', token);
+      this.auth_token_sig.set( token);  
+    } else {
+      localStorage.removeItem('auth_token');
+      this.auth_token_sig.set( token );
+    }
     // Later: replace with cookie logic
     // document.cookie = `auth_token=${token}; path=/; Secure; SameSite=Strict`;
   }

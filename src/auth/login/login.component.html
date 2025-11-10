@@ -30,7 +30,7 @@
           }
         </mat-form-field>
 
-        <!-- Email (for now unused )
+        <!-- Email ( unused )
         <mat-form-field appearance="outline" class="form-field">
           <mat-label>Email</mat-label>
           <input
@@ -84,7 +84,7 @@
         <!-- Error message  -->
          @if( loginErrorSignal() ){
           <div >
-            <mat-error> {{ loginErrorSignal()?.includes('400') ? 'Invalid username or password' : loginErrorSignal()}}</mat-error>
+            <mat-error> {{ loginErrorSignal()?.includes('Bad') ? 'Invalid credentials!' : loginErrorSignal()}}</mat-error>
           </div>
          }
     
@@ -92,6 +92,7 @@
           <span>Don't have an account?</span>
           <a routerLink="/register" class="text-primary fw-semibold"> Register here. </a>
         </div>
+
       </form>
     </mat-card-content>
   </mat-card>

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -24,4 +25,9 @@ import { RouterModule } from '@angular/router';
 })
 export class NavbarComponent {
   isSidenavOpen = false;
+
+  authService = inject(AuthService);
+
+  authLink = computed(() => this.authService.isAuthenticated() ? '/expenses' : '/login');
+  authLabel = computed(() => this.authService.isAuthenticated() ? 'Logout' : 'Login');
 }

@@ -20,13 +20,15 @@
       <div class="app-title">
         <span class="spacer">Expenses Tracker </span>
       </div>
-
       <span class="spacer"></span>
       <nav class="nav-buttons">
         <a mat-button routerLink="/dashboard">Dashboard</a>
         <a mat-button routerLink="/expenses">Expenses</a>
         <a mat-button routerLink="/reports">Reports</a>
         <a mat-button routerLink="/settings">Settings</a>
+        <a mat-button routerLink= 'authLink()'
+          (click)="this.authService.isAuthenticated()  && this.authService.logout()"
+        >{{authLabel()}}</a>
       </nav>
     </mat-toolbar>
   </div>
