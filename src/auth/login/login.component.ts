@@ -43,13 +43,13 @@ export class LoginComponent {
   });
 
   constructor() {
-    // Redirect if already authenticated
+    //=== WATCH FOR LOGINRESPONSE SIGNAL AND REACT TO CHANGES ===//
     effect(() => {
       const {token, error} = this.authService.loginResponse();
 
-      // redirect on login success  ( tokenn exists and no error)
+      //=== REDIRECT AFTER SUCCESSFUL LOGIN ==+//
       if (token && !error)  {
-        //localStorage.removeItem('auth_token'); /* TODO: Remove this line after component testing */
+        this.loginForm.reset();
         this.router.navigate(['/expenses']); /* TODO: best  to navigate to Home page */
       }
 
@@ -69,15 +69,17 @@ export class LoginComponent {
   });
 
   login(): void {
-    // if the form is invalid or the page is loading, we do not initiate new request
+    // EITHER FORM IS INVALID OR LOADING - DO NOTHING
     if (this.loginForm.invalid || this.authService.isLoading() ) return;
 
     const loginRequest: LoginRequest = this.loginForm.value as LoginRequest;
-
-    this.authService.login(loginRequest);
-
-    if( !this.authService.isLoading() ) this.loginForm.reset();
     
+    // reactive mode - ( signal based )
+    this.authService.triggerLogin(loginRequest);
+
+    //== CLASSICAL OBSERVABLE APPROACH - MANUALLY SUBSCRIBE AND UNSUBSCRIBE ==//
+    //this.authService.login( loginRequest).subscribe();
+
     console.log('Login request sent for user: ', JSON.stringify(loginRequest));
   }
 }

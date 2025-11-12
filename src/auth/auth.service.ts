@@ -4,8 +4,6 @@ import {
   Injectable,
   signal,
   effect,
-  runInInjectionContext,
-  Injector,
   computed,
 } from '@angular/core';
 import { LoginRequest, LoginResponse } from './login/login.model';
@@ -13,142 +11,134 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
-  Observable,
   of,
+  Subject,
   switchMap,
- 
+  Observable,
+  tap,
+  finalize,
 } from 'rxjs';
-import { HttpErrorService } from '../utils/http-errorservice';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { environment } from '../environments/environment'; /* Ensure to import the correct environment */
+import { HttpErrorService } from '../utils/http-errorservice';
+import { environment } from '../environments/environment';
+import { Token } from '@angular/compiler';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  
-  // token as signal 
-  auth_token_sig = signal<string | null>(null);
 
-  //refresh_token_sig = signal<srting | null >( null); // for now is unused
-  loginResponse = signal<LoginResponse>({ token: null, message: null, error: false });
-
-  isLoading = signal<boolean>(false);
-
-  // computed signal - automatically updates every time loginResponse changes
-  isAuthenticatedSignal = computed(() => !!this.loginResponse().token);
+  // === BASE URL ===
+  private baseUrl = `${environment.apiBaseUrl}`;
 
   private http = inject(HttpClient);
 
   private errorService = inject(HttpErrorService);
 
-  private injector = inject(Injector);
+  // === SIGNALS ===
+  auth_token_sig = signal<string | null>(null);
 
-  private baseUrl: string = `${environment.apiBaseUrl}`;
+  loginResponse = signal<LoginResponse>({ token: null, message: null, error: false });
+
+  isLoading = signal(false);
+
+  // === COMPUTED AUTH STATE ===
+  isAuthenticatedSignal = computed(() => !!this.loginResponse().token);
+
+  // === SUBJECT-BASED LOGIN PIPELINE ===
+  private loginRequest$ = new Subject<LoginRequest>();
+
+  loginSignal = toSignal(
+    this.loginRequest$.pipe(
+      debounceTime(200), /* filter out double clicks */
+      switchMap((req) => this._login(req))
+    ),
+    { initialValue: { token: null, message: null, error: false } }
+  );
+
+  
 
   constructor() {
-    /* on app load, retrieve stored token */
+    // Restore stored token at app start
     const storedToken = localStorage.getItem('auth_token');
     if (storedToken) {
       this.loginResponse.set({ token: storedToken, message: null, error: false });
     }
 
-    // Ensure signal and local sorage are in sync
-    effect((): void => {
+    // Reactively watch for login results from loginSignal
+    effect(() => {
+      const res = this.loginSignal();
+      if (!res?.token && !res?.error) return;
+      this.updateLoginResponse(res);
+      this.isLoading.set(false);
+    });
+
+    // Keep auth_token_sig and localStorage in sync
+    effect(() => {
       const token = this.loginResponse().token;
       this.setToken(token);
     });
-
   }
 
-  //  automatically updates when triggerd
-  login(loginRequest: LoginRequest): void {
-    // Perform-login, never subscribe manually
-    runInInjectionContext(this.injector, () => {
-      // change loading signal
-      this.isLoading.set(true);
-      // Wrap the loginRequest in an observable for debouncing/distinctUntilChanged
-      const loginRequest$ = of(loginRequest).pipe(
-        // wait briefly to absorb rapid repeated clicks
-        debounceTime(300),
-        // ignore if same username/password are sent repeatedly
-        distinctUntilChanged(
-          (prev, curr) => prev.username === curr.username && prev.password === curr.password
-        ),
-        // switch to actual login request
-        switchMap((req) => this._login(req))
-      );
+  // ===========================================================
+  //  HYBRID LOGIN METHOD (Observable + Signal Sync)
+  // ===========================================================
+  login(req: LoginRequest): Observable<LoginResponse> {
+    this.isLoading.set(true);
+    return this._login(req).pipe(
+      tap((res: LoginResponse) => {
+        this.updateLoginResponse(res);
+        if (res.token) this.setToken(res.token);
+      }),
+      catchError((err: HttpErrorResponse) => {
+        const errMsg = this.errorService.formatError(err);
+        const res: LoginResponse = { token: null, message: errMsg, error: true };
+        this.updateLoginResponse(res);
+        return of(res);
+      }),
+      finalize(() => this.isLoading.set(false))
+    );
+  }
 
-      const loginSignal = toSignal(loginRequest$, {
-        initialValue: { token: null, message: null, error: false },
-      });
+  /** Reactive login using subject (optional, called from components if you prefer signal mode) */
+  triggerLogin(req: LoginRequest): void {
+    this.isLoading.set(true);
+    this.loginRequest$.next(req);
+  }
 
-      // watch for loginSignal changes and update loginResponse signal ( our main signal)
-      effect(() => {
-        const res = loginSignal();
-        if (!res?.token && !res?.error) return; // ignore initial dummy  values
-        this.updateLoginResponse( res );
-      });
+  logout(): void {
+    this.setToken(null);
+    this.loginResponse.set({ token: null, message: null, error: false });
+    this.isLoading.set(false);
+  }
 
+  private _login(loginRequest: LoginRequest): Observable<LoginResponse> {
+    const url = `${this.baseUrl}${environment.endpoints.login}`;
+    return this.http.post<LoginResponse>(url, loginRequest).pipe(
+      catchError((err: HttpErrorResponse) => {
+        const errMsg = this.errorService.formatError(err);
+        return of({ token: null, message: errMsg, error: true });
+      })
+    );
+  }
+
+  private updateLoginResponse(res: LoginResponse): void {
+    this.loginResponse.set({
+      token: res.token,
+      message: res.message,
+      error: res.error ?? false,
     });
   }
 
-  logout(): void{
-   this.setToken(null);
-   this.loginResponse.set({ token: null, message: null, error: false });
-  }
-
-  private _login(loginRequest: LoginRequest): Observable<LoginResponse | null> {
-    const targetUrl =   `${this.baseUrl}${environment.endpoints.login}`;
-   
-    return this.http.post<LoginResponse | null>(targetUrl, loginRequest).pipe(
-      catchError((err) => {
-        const errMsg = this.errorHandler(err);
-        return of({ token: null, message: errMsg, error: true } as LoginResponse) ;
-      })
-    );
-    
-  }
-
-  private updateLoginResponse(res: LoginResponse){
-    //real backend update ocurred, update
-        this.loginResponse.set({
-          token: res.token,
-          message: res.message,
-          error: res.error ?? false,
-        });
-        // loading is complete
-        this.isLoading.set(false);
-  }
-  // save token after login
-  saveToken(token: string): void {
-    localStorage.setItem('auth_token', token);
-  }
-
-  // clear token
-  clearToken(): void {
-    localStorage.removeItem('auth_token');
-  }
-
-  // quick check if authenticated
-  isAuthenticated(): boolean {
-    return this.isAuthenticatedSignal();
-  }
-
-  private errorHandler(err: HttpErrorResponse): string {
-    return this.errorService.formatError(err);
-  }
-
   private setToken(token: string | null): void {
-    // use localStorage to store the token - although unsafe, we shall change to cookies
-    if (token){
+    if (token) {
       localStorage.setItem('auth_token', token);
-      this.auth_token_sig.set( token);  
+      this.auth_token_sig.set(token);
     } else {
       localStorage.removeItem('auth_token');
-      this.auth_token_sig.set( token );
+      this.auth_token_sig.set(null);
     }
-    // Later: replace with cookie logic
-    // document.cookie = `auth_token=${token}; path=/; Secure; SameSite=Strict`;
+  }
+
+  isAuthenticated(): boolean {
+    return this.isAuthenticatedSignal();
   }
 }

@@ -24,6 +24,11 @@ export class AuthTokenInterceptor implements HttpInterceptor {
     //const token = localStorage.getItem('auth_token');
     const token = this.authService.auth_token_sig();
 
+    if( !token ){
+        this.redirectToLogin();
+        throwError(()=> new Error('Null token is not valid.'))
+    }
+
     // early redirect to login ... avoid 401 error responses
     if( token && this.jwtService.isExpired(token) ){
          this.redirectToLogin();

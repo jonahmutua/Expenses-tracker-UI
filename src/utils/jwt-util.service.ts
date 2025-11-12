@@ -22,7 +22,7 @@ export class JwtUtilService {
     private snackbarService = inject(SnackbarService);
 
 
-    // decode JWT token and return its Payload (or null if invalid) 
+    // decode JWT token and return its Payload ( null if invalid) 
     decode(token: string | null){
         if(!token || !token.includes('.')){
             return null;

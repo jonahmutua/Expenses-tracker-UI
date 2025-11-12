@@ -19,7 +19,6 @@ import { ExpenseEditDialogComponent } from '../../expense/expense-edit-dialog/ex
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
-import { Router, RouterLink } from "@angular/router";
 
 interface Transaction {
   txnId: string;
@@ -31,7 +30,7 @@ interface Transaction {
 }
 
 @Component({
-  selector: 'app-my-transactions',
+  selector: 'et-home',
   standalone: true,
   imports: [
     CommonModule,
@@ -46,15 +45,18 @@ interface Transaction {
     MatListModule,
     MatIconModule,
     MatToolbar,
-    MatDialogModule,
-],
-  templateUrl: './expense-list.component.html',
-  styleUrls: ['./expense-list.component.css'],
+    MatDialogModule
+  
+  ],
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.css'],
   encapsulation: ViewEncapsulation.None
 })
-export class ExpenseListComponent {
+export class HomeComponent {
 
   expenseService = inject( ExpenseService);
+
+  authService = inject(AuthService);
 
   snackbarService = inject(SnackbarService);
 
@@ -68,14 +70,9 @@ export class ExpenseListComponent {
 
   displayedColumns: string[] = ['type', 'category', 'amount','lastUpdatedAt', 'note','actions'];
 
-    authService = inject(AuthService);
- 
-   authLink = computed(() => this.authService.isAuthenticatedSignal() ? '/expenses' : '/login');
-   authLabel = computed(() => this.authService.isAuthenticatedSignal() ? 'Logout' : 'Login');
-
-   router = inject(Router);
-
   filterForm: FormGroup;
+
+ 
 
   transactions: Transaction[] = [
     { txnId: 'TXN5014', itemId: 'STK20250014', itemName: 'Floor Cleaner 1L', type: 'OUT', quantity: 8, dateTime: '2025-11-01T16:15:00' },
@@ -93,17 +90,6 @@ export class ExpenseListComponent {
       fromDate: [''],
       toDate: ['']
     });
-
-    // WATCH FOR isAuthenticatedSignal AND REACT TO CHANGES 
-    effect( ()=>{
-
-        // IF WE ARE NOT AUTHENTICATED ==//
-        if( !this.authService.isAuthenticatedSignal() ){
-            //== Redirect to login ==//
-            this.router.navigate(['/login']);
-        }
-    });
-
   }
 
   private dialog = inject( MatDialog );  // Dialog Box for Expense Editing 

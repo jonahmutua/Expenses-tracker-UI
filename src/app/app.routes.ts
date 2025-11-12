@@ -3,10 +3,13 @@ import { LoginComponent } from '../auth/login/login.component';
 import { SignupComponent } from '../auth/signup/signup.component';
 import { ExpenseListComponent } from '../expense/expense-list/expense-list.component';
 import { authGuard } from '../auth/auth-guard';
+import { HomeComponent, } from './home/home.component';
+import { loginRedirectGuard } from '../auth/login/login-redirect-guard';
 
 export const routes: Routes = [
-    {path: 'login', component: LoginComponent},
+    {path: 'login', component: LoginComponent, canActivate: [loginRedirectGuard]},
     {path: 'register', component: SignupComponent},
+    {path: 'home', component: HomeComponent},
     {path: 'expenses', canActivate: [authGuard], loadComponent: ()=> import('../expense/expense-list/expense-list.component').then(m=>m.ExpenseListComponent)},
     /*
         / Optional: group multiple protected routes under a parent
