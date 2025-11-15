@@ -11,7 +11,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbar } from '@angular/material/toolbar';
-import { Expense } from '../../models/expense/expense.model';
+import { Expense } from '../expense.model';
 import { SnackbarService } from '../../utils/snackbar.service';
 import { ExpenseService } from '../../expense/expense.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -58,9 +58,9 @@ export class ExpenseListComponent {
 
   snackbarService = inject(SnackbarService);
 
-  expenses: Signal<Expense[]> = this.expenseService.expenses;
+  expenses = this.expenseService.expenses;
 
-  filteredExpenses: Signal<Expense[]> =  computed(()=>this.expenses());
+  filteredExpenses =  computed(()=>this.expenses());
 
   userName = "jkithaka";
 
@@ -68,7 +68,7 @@ export class ExpenseListComponent {
 
   displayedColumns: string[] = ['type', 'category', 'amount','lastUpdatedAt', 'note','actions'];
 
-    authService = inject(AuthService);
+  authService = inject(AuthService);
  
    authLink = computed(() => this.authService.isAuthenticatedSignal() ? '/expenses' : '/login');
    authLabel = computed(() => this.authService.isAuthenticatedSignal() ? 'Logout' : 'Login');
@@ -97,9 +97,13 @@ export class ExpenseListComponent {
     // WATCH FOR isAuthenticatedSignal AND REACT TO CHANGES 
     effect( ()=>{
 
-        // IF WE ARE NOT AUTHENTICATED ==//
-        if( !this.authService.isAuthenticatedSignal() ){
-            //== Redirect to login ==//
+        // IF WE ARE AUTHENTICATED ==//
+        if( this.authService.isAuthenticatedSignal() ){
+            // === Reload expenses === //
+            this.expenseService.loadExpenses();
+            
+        }else {
+            // ==- We aren't autheniticated so Redirect to login ==//
             this.router.navigate(['/login']);
         }
     });
@@ -140,8 +144,9 @@ export class ExpenseListComponent {
                 const result = closedSignal();
                 if( result){
                    this.editedExpense.set( result );
+                   console.log("Editing expense: " , result.id);
                    this.expenseService.upsertExpense( result );
-                   console.log("Editing expense: " , JSON.stringify( result ));   
+                     
                 }
             });
         });

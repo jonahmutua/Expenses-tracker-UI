@@ -1,6 +1,6 @@
 export interface Expense {
     
-    id: number;
+    id?: number;
 
     expenseType: number;
 
@@ -22,4 +22,10 @@ export interface Expense {
 export interface ExpenseDialogData {
   mode: 'add' | 'edit';
   expense?: Expense; // optional for add mode
+}
+
+/* Epxense type Enum */
+export enum ExpenseTypeEnum {
+  Expense = 0,
+  Income  = 1
 }

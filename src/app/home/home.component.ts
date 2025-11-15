@@ -11,7 +11,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbar } from '@angular/material/toolbar';
-import { Expense } from '../../models/expense/expense.model';
+import { Expense } from '../../expense/expense.model';
 import { SnackbarService } from '../../utils/snackbar.service';
 import { ExpenseService } from '../../expense/expense.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';

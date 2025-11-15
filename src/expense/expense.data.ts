@@ -1,4 +1,4 @@
-import { Expense } from "../models/expense/expense.model";
+import { Expense } from "./expense.model";
 
 export class ExpenseData {
 

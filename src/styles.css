@@ -42,3 +42,17 @@
 .snackbar-success .mat-mdc-snack-bar-action .mdc-button__ripple::after {
   background-color: rgba(255, 255, 255, 0.2) !important;
 }
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+
+.mat-dialog-container {
+  overflow: visible !important; /* allow popup to escape the dialog boundaries */
+  z-index: 1000; /* default */
+}
+
+.cdk-overlay-container {
+  z-index: 1100 !important; /* above the dialog */
+}
+
+

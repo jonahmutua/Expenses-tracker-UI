@@ -1,58 +1,79 @@
 <h2 mat-dialog-title>
-  {{ mode === 'edit' ? 'Edit Expense' : 'Add Expense'}}
+  {{ mode === 'edit' ? 'Edit Expense' : 'Add Expense' }}
 </h2>
 
 <mat-dialog-content class="dialog-content" [formGroup]="expenseForm">
-
-  <!-- Expense Type -->
-  <mat-form-field  appearance="outline" class="full-width">
-    <mat-label>Expense Type</mat-label>
-    <input matInput formControlName="expenseType" />
+  
+  <!-- Expense Type with selector -->
+  
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Type</mat-label>
+    <mat-select formControlName="expenseType" [disabled]="mode === 'edit' ">
+      @for (type of expenseTypes; track type.value) {
+      <mat-option [value]="type.value">{{ type.label }}</mat-option>
+      }
+    </mat-select>
     @if ( f.expenseType.touched && f.expenseType.invalid ) {
-      <mat-error>Type is required (min 3 chars)</mat-error>
+    <mat-error>Expense type is required</mat-error>
     }
   </mat-form-field>
+  
 
   <!-- Category -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Category</mat-label>
     <input matInput formControlName="category" />
     @if (f.category.touched && f.category.invalid) {
-      <mat-error>Category is required</mat-error>
+    <mat-error>Category is required</mat-error>
     }
   </mat-form-field>
 
-  <!-- Date -->
-   <mat-form-field appearance="outline" class="full-width">
-    <mat-label>lastUpdateAt</mat-label>
-    <input matInput formControlName="date" />
+  <!-- Date Picker -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Last Updated </mat-label>
+    <input
+      matInput
+      [matDatepicker]="picker"
+      formControlName="date"
+      placeholder="Choose a date"
+      (click)="picker.open()"
+      readonly
+    />
+    <mat-datepicker-toggle matPrefix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+
+    <!-- Error -->
     @if (f.date.touched && f.date.invalid) {
-      <mat-error>Date is required</mat-error>
+    <mat-error>Date is required</mat-error>
     }
   </mat-form-field>
-
 
   <!-- Amount -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Amount</mat-label>
-    <input matInput type="number" formControlName="amount" />
-    @if (f.amount.touched && f.amount.invalid) {
-      <mat-error>Enter a valid amount</mat-error>
-    }
+    <input matInput type="number" formControlName="amount" placeholder="0.00" />
+    @if (f.amount.touched && f.amount.invalid) { @if(f.amount.hasError('min')){
+    <mat-error>Amount must be greater than 0.</mat-error>
+    }@else {
+    <mat-error>Enter a valid amount</mat-error>
+    } }
   </mat-form-field>
 
-
-   <!-- Account -->
-  @if( mode === 'add'){
-    <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Account</mat-label>
-      <input matInput  formControlName="account" />
-      @if (f.account.touched && f.account.invalid) {
-        <mat-error>Account is required</mat-error>
-      }
-    </mat-form-field>
-  }
+  <!-- Account -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Account</mat-label>
+    <input matInput formControlName="account" placeholder="Enter payment mode e.g Cash" />
+    @if (f.account.touched && f.account.invalid) {
+    <mat-error>Account is required</mat-error>
+    }
+  </mat-form-field>
   
+
+  <!-- note(Optioanal) -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Note</mat-label>
+    <input matInput type="string" formControlName="note" />
+  </mat-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
