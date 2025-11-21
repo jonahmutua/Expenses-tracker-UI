@@ -30,10 +30,7 @@ export class LoginComponent {
   authService = inject(AuthService);
   router = inject(Router);
 
-  loginErrorSignal = computed(()=>{
-    const resp = this.authService.loginResponse();
-    return resp.error ? resp.message : null;
-  });
+  loginErrorSignal = computed( () => this.authService.errorMessage() );
 
 
   loginForm = this.fb.group({
@@ -45,10 +42,10 @@ export class LoginComponent {
   constructor() {
     //=== WATCH FOR LOGINRESPONSE SIGNAL AND REACT TO CHANGES ===//
     effect(() => {
-      const {token, error} = this.authService.loginResponse();
+      
 
       //=== REDIRECT AFTER SUCCESSFUL LOGIN ==+//
-      if (token && !error)  {
+      if ( this.authService.isAuthenticated() )  {
         this.loginForm.reset();
         this.router.navigate(['/expenses']); /* TODO: best  to navigate to Home page */
       }

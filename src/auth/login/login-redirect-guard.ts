@@ -7,7 +7,7 @@ export const loginRedirectGuard: CanActivateFn = ()=>{
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    if( authService.isAuthenticatedSignal() ){
+    if( authService.isAuthenticated() ){
         router.navigate(['/expenses']);
         return false;
     }

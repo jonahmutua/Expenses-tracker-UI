@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -8,7 +8,7 @@ import {
   FormControl,
 } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
-import { Expense, ExpenseDialogData, ExpenseTypeEnum } from '../expense.model';
+import { Expense, ExpenseCategory, ExpenseDialogData, ExpenseForm, ExpenseTypeEnum, IncomeCategory,} from '../expense.model';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatOption } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { DateUtilService } from '../../utils/date-util.service';
 @Component({
   selector: 'app-expense-edit-dialog',
   standalone: true,
@@ -37,88 +39,108 @@ export class ExpenseEditDialogComponent {
 
   private dialogRef = inject(MatDialogRef<ExpenseEditDialogComponent>);
 
-  private data = inject<ExpenseDialogData>(MAT_DIALOG_DATA);
+  private dialogData = inject<ExpenseDialogData>(MAT_DIALOG_DATA);
 
-  private fb = inject(NonNullableFormBuilder);
+  private fb = inject(FormBuilder);
 
-  mode = this.data.mode;
+  private dateService = inject(DateUtilService);
 
-  expenseTypeEnum = ExpenseTypeEnum; // Make expense type enum available 
+  mode = this.dialogData.mode;
 
-  expenseTypes =  [
-    {value: ExpenseTypeEnum.Expense, label: 'Expense'},
-    {value: ExpenseTypeEnum.Income, label: 'Income'}
-  ]
-
-  expenseForm: FormGroup<{
-    id: FormControl<number | undefined>;
-    expenseType: FormControl<number>;
-    category: FormControl<string>;
-    date: FormControl<Date | null>;
-    amount: FormControl<number | null>;
-    account: FormControl<string>;
-    note: FormControl<string>;
-  }>;
-
-  constructor() {
-    const exp = this.data.expense ?? {
-      id: undefined, // optional
-      expenseType: 0,
-      category: '',
-      date: '',
-      amount: null,
-      account: '',
-      note: '',
-    };
-    this.expenseForm = this.fb.group({
-      id: this.fb.control<number | undefined>(exp.id), // optional
-      expenseType: this.fb.control(exp.expenseType, [Validators.required]),
-      category: this.fb.control(exp.category, Validators.required),
-      date: this.fb.control(exp.date ? new Date(exp.date as string) : null, [Validators.required]),
-      amount: this.fb.control(exp.amount, [Validators.required, Validators.min(0.01)]),
-      account: this.fb.control(exp.account, this.mode === 'add' ? [Validators.required] : []),
-      note: this.fb.control(exp.note, []),
-    });
-  }
-
-  onSave() {
-    if (this.expenseForm.valid) {
-      const raw = this.expenseForm.value;
-
-      // === Convert date input filed to 'YYYY-MM-dd' === //
-      const expense: Expense = {
-        id: raw.id!, // ok if optional
-        expenseType: raw.expenseType!,
-        category: raw.category!,
-        date: raw.date ? new Date(raw.date).toISOString().split('T')[0] : '',
-        amount: raw.amount!,
-        account: raw.account!,
-        note: raw.note ?? '',
-      };
-
-      // === Creating a new expense === //
-      if (this.data?.mode === 'add') {
-        this.dialogRef.close(expense);
-        return;
-      }
-
-      // Compare with original data
-      const original = this.data.expense;
-      if (original) {
-        const hasChanges = (Object.keys(expense) as (keyof Expense)[]).some(
-          (key) => expense[key] !== original[key]
-        );
-        // Only emit if changed otherwise just close without emitting
-        hasChanges ? this.dialogRef.close(expense) : this.dialogRef.close();
-      }
+  
+    expenseForm: FormGroup<ExpenseForm> = this.fb.group({
+    id:       [null],
+    type:     [ExpenseTypeEnum.EXPENSE, [Validators.required]],
+    category: ['', [Validators.required]],
+    date:     [null, [Validators.required]],
+    account:  [null, [Validators.required]],
+    amount:   [0, [Validators.required, Validators.min(0.01)]],
+    note:     [null]
+    }) as FormGroup<ExpenseForm>;
     
-    } else {
-      this.expenseForm.markAllAsTouched();
-    }
-  }
+    //Form Control accessors 
+    idCtrl       = this.expenseForm.get('id') as FormControl<number | null>;
+    typeCtrl     = this.expenseForm.get('type') as FormControl<ExpenseTypeEnum>;
+    categoryCtrl = this.expenseForm.get('category') as FormControl<IncomeCategory | ExpenseCategory | ''>;
+    accountCtrl  = this.expenseForm.get('account') as FormControl<string | null>;
+    dateCtrl     = this.expenseForm.get('date') as FormControl<Date | null>;
+    amountCtrl   = this.expenseForm.get('amount') as FormControl<number>;
+    noteCtrl     = this.expenseForm.get('note')  as FormControl<string | null>;
+    
+    //Form values as signals 
+    formValues = toSignal(this.expenseForm.valueChanges, 
+    {initialValue: this.expenseForm.getRawValue()});
+    
+    selectedExpenseType = computed( () => this.formValues().type );
 
+    // UI
+    // expense type options 
+    expenseTypeOptions = signal(Object.values( ExpenseTypeEnum));
+   // Category options based on exepnse type
+    categoryOptions = computed( () => {
+     switch( this.selectedExpenseType() ){
+     case ExpenseTypeEnum.EXPENSE: 
+       return Object.values(ExpenseCategory);
+     case ExpenseTypeEnum.INCOME:
+       return Object.values(IncomeCategory);
+     default:
+       return [];
+    }
+    });
+    
+    constructor() {
+      // load expense data if user opens dialog in edit mode
+      if( this.dialogData.mode === 'edit' && this.dialogData.expense ){
+          this.loadExpense(this.dialogData.expense);
+      }
+      
+      // Auto-reset category when user changes expense type 
+      effect(()=>{
+       this.selectedExpenseType();
+       // Only reset if user changed type, not during initial load.
+       if( this.categoryCtrl.dirty ){
+          this.categoryCtrl.setValue('');
+       } 
+
+      });
+      
+    }
+    
+    // load expense for editing 
+    private loadExpense(expense: Expense) : void {
+       this.expenseForm.patchValue ({
+         id: expense.id,
+         type: this.toExpenseTypeEnum(expense.expenseType),
+         category: this.toCategoryEnum( expense.category) ,
+         account: expense.account,
+         date: new Date(expense.date),
+         amount: expense.amount,
+         note: expense.note
+       });
+    }
+    
+     // Submits Form 
+      onSave(): void {
+       const formValue = this.expenseForm.getRawValue();
+    
+       const expenseData: Expense = {
+           id: formValue.id ?? null,
+           expenseType: this.toNumber(formValue.type),
+           category: formValue.category,
+           date: formValue.date? this.dateService.formatLocalDate(formValue.date) : this.dateService.formatLocalDate(new Date()),
+           account: formValue.account,
+           amount: formValue.amount,
+           note: formValue.note ?? ''
+         } as Expense;
+    
+       this.dialogRef.close( expenseData)
+    
+   }
+
+    // Excutes If user has Cancelled  the Dialog
   onCancel() {
     if (this.expenseForm.dirty) {
+      // Display a confirm prompt
       const confirmCancel = window.confirm(
         'You have unsaved changes. Are you sure you want to cancel?'
       );
@@ -127,10 +149,44 @@ export class ExpenseEditDialogComponent {
         return; // User decided not to cancel
       }
     }
+    // user decided to proceed with cancellation anyway
     this.dialogRef.close();
   }
+   
+   // ========== Helper Methods  ================ //
 
-  get f() {
-    return this.expenseForm.controls;
-  }
+   // Maps category string type to CategoryEnum type - 
+   private toCategoryEnum(value: string) : IncomeCategory | ExpenseCategory | '' {
+    if( Object.values(IncomeCategory).includes( value as any)) return value as IncomeCategory;
+
+    if( Object.values(ExpenseCategory).includes( value as any)) return value as ExpenseCategory;
+
+    return '' ; //fallback - empty string
+   }
+
+   // maps EpenseTypeEnum type  to number type - 
+   private toNumber(value: ExpenseTypeEnum) : number  {
+    switch( value ){
+      case ExpenseTypeEnum.EXPENSE:
+        return 0;
+      case ExpenseTypeEnum.INCOME:
+        return 1;
+      default: 
+        return 0; // fallback = Expense
+    }
+   }
+
+   // Maps expense number type  to Expense Type Enum 
+   private toExpenseTypeEnum(value: number) : ExpenseTypeEnum {
+    switch( value){
+      case 0:
+        return ExpenseTypeEnum.EXPENSE;
+      case 1: 
+        return ExpenseTypeEnum.INCOME
+      default: 
+        return ExpenseTypeEnum.EXPENSE; // fallback = Expense
+
+    }
+   }
+
 }

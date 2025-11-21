@@ -73,11 +73,11 @@ export class ExpenseService {
       this.operationError.set(null)
     }),
     switchMap((expense)=>{
-      console.log("Expense ID: ", expense.id);
-      const isUpdate = expense.id !== 0 && expense.id !== undefined && expense.id !== null ; // check wether we update or creat a new expns
+      console.log("Saving | updating Expense: ", expense);
+      const isUpdate = expense.id !== 0 && expense.id !== undefined && expense.id !== null ; // check wether we update or creat a new expense
       const req$ = isUpdate ? this.http.put(`${this.baseUrl}/${expense.id}`, expense) : this.http.post(this.baseUrl, expense);
       return req$.pipe(
-        tap((savedExpense) => {
+        tap(() => {
           this.operationInProgress.set(false);
           this.operationError.set(null);
           this.reloadTrigger$.next(); // === Trigger reload for refresh list

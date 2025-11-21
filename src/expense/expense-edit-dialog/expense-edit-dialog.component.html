@@ -5,25 +5,28 @@
 <mat-dialog-content class="dialog-content" [formGroup]="expenseForm">
   
   <!-- Expense Type with selector -->
-  
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Type</mat-label>
-    <mat-select formControlName="expenseType" [disabled]="mode === 'edit' ">
-      @for (type of expenseTypes; track type.value) {
-      <mat-option [value]="type.value">{{ type.label }}</mat-option>
+    <mat-select [formControl]="typeCtrl" >
+      @for (type of expenseTypeOptions(); track type) {
+      <mat-option [value]="type">{{ type }}</mat-option>
       }
     </mat-select>
-    @if ( f.expenseType.touched && f.expenseType.invalid ) {
+    @if ( typeCtrl.touched && typeCtrl.invalid ) {
     <mat-error>Expense type is required</mat-error>
     }
   </mat-form-field>
   
 
-  <!-- Category -->
+  <!-- Category Selector -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Category</mat-label>
-    <input matInput formControlName="category" />
-    @if (f.category.touched && f.category.invalid) {
+    <mat-select matInput [formControl]="categoryCtrl">
+      @for(cat of categoryOptions(); track cat){
+        <mat-option [value]="cat">{{ cat }}</mat-option>
+      }
+    </mat-select>
+    @if (categoryCtrl.touched && categoryCtrl.invalid) {
     <mat-error>Category is required</mat-error>
     }
   </mat-form-field>
@@ -34,7 +37,7 @@
     <input
       matInput
       [matDatepicker]="picker"
-      formControlName="date"
+      [formControl]="dateCtrl"
       placeholder="Choose a date"
       (click)="picker.open()"
       readonly
@@ -43,7 +46,7 @@
     <mat-datepicker #picker></mat-datepicker>
 
     <!-- Error -->
-    @if (f.date.touched && f.date.invalid) {
+    @if (dateCtrl.touched && dateCtrl.invalid) {
     <mat-error>Date is required</mat-error>
     }
   </mat-form-field>
@@ -51,8 +54,8 @@
   <!-- Amount -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Amount</mat-label>
-    <input matInput type="number" formControlName="amount" placeholder="0.00" />
-    @if (f.amount.touched && f.amount.invalid) { @if(f.amount.hasError('min')){
+    <input matInput type="number" [formControl]="amountCtrl" placeholder="0.00" />
+    @if (amountCtrl.touched && amountCtrl.invalid) { @if(amountCtrl.hasError('min')){
     <mat-error>Amount must be greater than 0.</mat-error>
     }@else {
     <mat-error>Enter a valid amount</mat-error>
@@ -62,8 +65,8 @@
   <!-- Account -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Account</mat-label>
-    <input matInput formControlName="account" placeholder="Enter payment mode e.g Cash" />
-    @if (f.account.touched && f.account.invalid) {
+    <input matInput [formControl]="accountCtrl" placeholder="Enter payment mode e.g Cash" />
+    @if (accountCtrl.touched && accountCtrl.invalid) {
     <mat-error>Account is required</mat-error>
     }
   </mat-form-field>
@@ -72,7 +75,7 @@
   <!-- note(Optioanal) -->
   <mat-form-field appearance="outline" class="full-width">
     <mat-label>Note</mat-label>
-    <input matInput type="string" formControlName="note" />
+    <input matInput type="string" [formControl]="noteCtrl" />
   </mat-form-field>
 </mat-dialog-content>
 

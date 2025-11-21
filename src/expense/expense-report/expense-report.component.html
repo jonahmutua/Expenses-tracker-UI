@@ -1,0 +1,145 @@
+
+    <!-- Period Selector [(ngModel)]="selectedPeriod" -->
+    <div class="period-selector">
+      <mat-button-toggle-group (change)="onPeriodChange()">
+        <mat-button-toggle value="week">Week</mat-button-toggle>
+        <mat-button-toggle value="month">Month</mat-button-toggle>
+        <mat-button-toggle value="year">Year</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <mat-card class="stat-card income-card">
+        <mat-card-content>
+          <div class="stat-header">
+            <div class="stat-icon income-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+            <span class="stat-change positive">
+              <mat-icon>arrow_upward</mat-icon>
+              +12.5%
+            </span>
+          </div>
+          <h3 class="stat-label">Total Income</h3>
+          <p class="stat-value">KES {{ stats.totalIncome | number }}</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card expense-card">
+        <mat-card-content>
+          <div class="stat-header">
+            <div class="stat-icon expense-icon">
+              <mat-icon>trending_down</mat-icon>
+            </div>
+            <span class="stat-change negative">
+              <mat-icon>arrow_downward</mat-icon>
+              +8.3%
+            </span>
+          </div>
+          <h3 class="stat-label">Total Expenses</h3>
+          <p class="stat-value">KES {{ stats.totalExpenses | number }}</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card balance-card">
+        <mat-card-content>
+          <div class="stat-header">
+            <div class="stat-icon balance-icon">
+              <mat-icon>account_balance_wallet</mat-icon>
+            </div>
+            <span class="stat-badge">Healthy</span>
+          </div>
+          <h3 class="stat-label">Balance</h3>
+          <p class="stat-value">KES {{ stats.balance | number }}</p>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card transaction-card">
+        <mat-card-content>
+          <div class="stat-header">
+            <div class="stat-icon transaction-icon">
+              <mat-icon>event</mat-icon>
+            </div>
+          </div>
+          <h3 class="stat-label">Transactions</h3>
+          <p class="stat-value">{{ stats.transactions }}</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+      <!-- Category Breakdown -->
+      <mat-card class="category-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>pie_chart</mat-icon>
+            Category Breakdown
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="category-list">
+            @for(category of categoryBreakdown; track category.category) {
+              <div class="category-item">
+                <div class="category-info">
+                  <span class="category-name">{{ category.category }}</span>
+                  <span class="category-percentage">{{ category.percentage }}%</span>
+                </div>
+                <mat-progress-bar 
+                  mode="determinate" 
+                  [value]="category.percentage"
+                  [color]="'primary'">
+                </mat-progress-bar>
+                <p class="category-amount">KES {{ category.amount | number }}</p>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Recent Transactions -->
+      <mat-card class="transactions-card">
+        <mat-card-header>
+          <mat-card-title>Recent Transactions</mat-card-title>
+          <button mat-button color="primary">View All</button>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list>
+            @for(transaction of recentTransactions; track transaction.id) {
+              <mat-list-item class="transaction-item">
+                <div matListItemIcon [class]="transaction.type === 'income' ? 'income-icon' : 'expense-icon'">
+                  <mat-icon>{{ transaction.type === 'income' ? 'trending_up' : 'trending_down' }}</mat-icon>
+                </div>
+                <div matListItemTitle>
+                  <strong>{{ transaction.category }}</strong>
+                </div>
+                <div matListItemLine>
+                  {{ transaction.note }}
+                </div>
+                <div matListItemMeta class="transaction-meta">
+                  <p [class]="transaction.type === 'income' ? 'amount-positive' : 'amount-negative'">
+                    {{ transaction.type === 'income' ? '+' : '-' }} KES {{ transaction.amount | number }}
+                  </p>
+                  <p class="transaction-date">{{ transaction.date }}</p>
+                </div>
+              </mat-list-item>
+              <mat-divider></mat-divider>
+            }
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Call to Action -->
+    <mat-card class="cta-card">
+      <mat-card-content>
+        <h2>Track Your Finances Effectively</h2>
+        <p>Get insights into your spending habits and make informed financial decisions</p>
+        <div class="cta-actions">
+          <button mat-raised-button color="accent">View Reports</button>
+          <button mat-stroked-button color="accent">Set Budget</button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+ 

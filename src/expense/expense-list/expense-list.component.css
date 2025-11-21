@@ -51,8 +51,10 @@
   font-size: 22px; /* make icons uniform size */
   line-height: 1;
   vertical-align: middle;
-  color: inherit;
+  color: inherit !important;
 }
+
+
 
 /* make nav-list inherit text color */
 .sidenav .mat-mdc-list-item,
@@ -155,3 +157,23 @@ th.mat-header-cell {
 .no-expenses mat-icon {
   vertical-align: middle;
 }
+
+/* expense add button */
+.add-expense-fab {
+  position: fixed;
+  bottom: 8px;
+  right: 24px;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+
+.spacer {
+ flex: 1 1 auto;;
+}
+
+.add-expense-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 2px; /* space between button and label */
+}
+

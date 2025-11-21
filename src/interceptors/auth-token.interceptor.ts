@@ -4,84 +4,54 @@ import { catchError, Observable, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { AuthService } from '../auth/auth.service';
-import { JwtUtilService } from '../utils/jwt-util.service';
+import { isPublicEndpoint } from '../utils/auth.util';
 
-/* classical approach */
 @Injectable({
   providedIn: 'root',
 })
 export class AuthTokenInterceptor implements HttpInterceptor {
-
-    private router = inject(Router);
-
-    private authService  = inject(AuthService);
-
-    private jwtService = inject(JwtUtilService);
-
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-
-    //const token = localStorage.getItem('auth_token');
-    const token = this.authService.auth_token_sig();
-
-    if( !token ){
-        this.redirectToLogin();
-        throwError(()=> new Error('Null token is not valid.'))
+    
+    // For public endpoints we skip JWT auth checks 
+    if( isPublicEndpoint(req.url) ){
+      return next.handle(req);
     }
 
-    // early redirect to login ... avoid 401 error responses
-    if( token && this.jwtService.isExpired(token) ){
-         this.redirectToLogin();
-         throwError(()=> new Error('Token Expired'));
+    // If we ever get here, this endpoint is not publc , We check if authentecated and act accordingly
+    const token = this.authService.getToken();
+
+    // Check if authenticated (validates token existence AND expiry)
+    if (!this.authService.isAuthenticated()) {
+      this.authService.logout();
+      this.redirectToLogin();
+      return throwError(() => new Error('Invalid or expired token'));
     }
 
-    // only add the authorization header if token is available and not expired else keep request as is.
-    const authReq = (token ) ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+    // At this point we are authenticated and token is not expired we Add authorization header
+    const authReq = req.clone({ 
+      setHeaders: { Authorization: `Bearer ${token}` } 
+    });
 
+    // IF we ever fall into 401 error let us redirect User to '/login' endpoint 
     return next.handle(authReq).pipe(
-        catchError( (error : HttpErrorResponse) => {
-        
-            if( error.status === 401 ){
-                this.redirectToLogin();
-            }
-
-            return throwError( () => error) ; // propagate error downnstream
-        })
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          this.authService.logout();
+          this.redirectToLogin();
+        }
+        return throwError(() => error); // else cascade error upstream
+      })
     );
   }
 
-  // rediriects to login page 
   private redirectToLogin(): void {
-    localStorage.removeItem("auth_token");
     const loginUrl = `${environment.endpoints.login}`;
-
-    // redirect onl if not in login page 
-    if( !this.router.url.includes(loginUrl)){
-        this.router.navigate([loginUrl]);
+    if (!this.router.url.includes(loginUrl)) {
+      this.router.navigate([loginUrl]);
     }
   }
+  
 }
-
-/** FUnctional approach */
-/** 
-import { inject } from '@angular/core';
-import { HttpInterceptorFn } from '@angular/common/http';
-export const authTokenInterceptor: HttpInterceptorFn = ( req, next) => {
-
-    const token = localStorage.getItem("auth_token");
-
-    // only add the authorization header if token is available 
-    if( token ){
-        const cloned = req.clone({
-            setHeaders: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        return next(cloned);
-    }
-
-    // if token is not provided, return request as is
-    return next(req);
-}
-*/

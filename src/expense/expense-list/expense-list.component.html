@@ -1,63 +1,77 @@
-<mat-toolbar class="app-toolbar">
-  <mat-icon matListItemIcon>data_exploration</mat-icon>
-  <h2 class="title">EXPENSES TRACKING SYSTEM</h2>
-  <span class="spacer"></span>
-  <mat-icon matListItemIcon>person</mat-icon>
-  <span class="user-info">
-    {{ userName }} &nbsp;|&nbsp; {{ currentDate | date : 'dd MMM yyyy' }}
-  </span>
-</mat-toolbar>
 
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav mode="side" opened class="sidenav">
-    <mat-nav-list>
-      <a mat-list-item><mat-icon matListIcon>dashboard</mat-icon> <span>Dashboard</span></a>
-      <a mat-list-item (click)="openAddDialog()"
-        ><mat-icon matListIcon>add_circle_outline</mat-icon> <span>Add Expense</span>
-      </a>
-      <!--
-      <a mat-list-item>View Stock</a>
-      <a mat-list-item>Add Transaction</a>
-      <a mat-list-item class="active">Transactions</a>
-      -->
-      <a mat-list-item><mat-icon matListIcon>key</mat-icon> <span>Change Password</span></a>
-      <a mat-list-item (click)="authService.isAuthenticatedSignal() && authService.logout()"><mat-icon matListIcon>logout</mat-icon> <span>{{ authLabel() }} </span></a>
-    </mat-nav-list>
-  </mat-sidenav>
-
-  <mat-sidenav-content class="content">
+ 
     <div class="header">
       <h1>Expenditure History</h1>
     </div>
 
     <mat-card class="filter-card">
       <form [formGroup]="filterForm" class="filter-form">
+
+        <!-- Expense Type selector -->
         <mat-form-field appearance="outline">
           <mat-label>Type</mat-label>
-          <mat-select formControlName="type">
-            <mat-option value="ALL">All</mat-option>
-            <mat-option value="IN">IN</mat-option>
-            <mat-option value="OUT">OUT</mat-option>
+          <mat-select [formControl]="typeCtrl">
+            @for( option of expenseTypeOptions(); track option){
+              <mat-option [value]="option">{{option}}</mat-option>
+            }
           </mat-select>
         </mat-form-field>
 
+         <!-- Category Type selector -->
         <mat-form-field appearance="outline">
-          <mat-label>Item/ID</mat-label>
-          <input matInput formControlName="itemId" placeholder="Enter item name or ID" />
+          <mat-label>Category</mat-label>
+          <mat-select [formControl]="categoryCtrl">
+            @for( cat of categoryOptions(); track cat){
+              <mat-option [value]="cat">{{cat}}</mat-option>
+            }
+          </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <!-- <mat-form-field appearance="outline">
           <mat-label>From</mat-label>
-          <input matInput type="date" formControlName="fromDate" />
-        </mat-form-field>
+          <input matInput type="date" [formControl]="fromDateCtrl" />
+        </mat-form-field> -->
 
+        <!-- From Date Datepicker -->
         <mat-form-field appearance="outline">
-          <mat-label>To</mat-label>
-          <input matInput type="date" formControlName="toDate" />
+          <mat-label>From Date</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="fromDatePicker"
+            [formControl]="fromDateCtrl"
+            placeholder="Select start date"
+            (focus)="fromDatePicker.open()"
+            readonly
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #fromDatePicker></mat-datepicker>
         </mat-form-field>
 
-        <button mat-flat-button color="primary" (click)="applyFilter()">Apply Date Filter</button>
-        <button mat-flat-button color="warn" (click)="clearFilter()">Clear Date Filter</button>
+
+        <!-- <mat-form-field appearance="outline">
+          <mat-label>To</mat-label>
+          <input matInput type="date" [formControl]="toDateCtrl" />
+        </mat-form-field> -->
+
+        <!-- To Date Datepicker -->
+        <mat-form-field appearance="outline">
+          <mat-label>To Date</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="toDatePicker"
+            [formControl]="toDateCtrl"
+            (focus)="toDatePicker.open()" 
+            placeholder="Select end date"
+            readonly
+          />
+          <mat-datepicker-toggle matIconSuffix [for]="toDatePicker"></mat-datepicker-toggle>
+          <mat-datepicker #toDatePicker></mat-datepicker>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" (click)="openAddDialog()">Add Expense</button>
+        <button mat-flat-button color="warn" (click)="clearDateFilter()">Clear Date Filter</button>
+        <!-- <span class="spacer"></span>
+        <button mat-flat-button color="accent" (click)="openAddDialog()">Add Expense</button> -->
       </form>
     </mat-card>
 
@@ -127,6 +141,3 @@
       </button>
       }
     </div>
-
-  </mat-sidenav-content>
-</mat-sidenav-container>
