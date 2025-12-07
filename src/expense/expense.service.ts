@@ -12,6 +12,7 @@ import {
   switchMap,
   tap,
   debounceTime,
+  finalize,
 } from 'rxjs';
 import { HttpErrorService } from '../utils/http-errorservice';
 import { ApiResponseDto } from '../dto/api.responsedto';
@@ -171,7 +172,17 @@ export class ExpenseService {
     }
   }
 
+  // Syncs cached data with Backend DB after Deletion Operations
   private updateCacheAfterDelete(id: number): void {
+    const filterCreteria = this.filterCriteriaState();
+    
+    // if user had applied complex filter prior to expense deletion, perform backend filtering 
+    if(this.isComplexFilter(filterCreteria)){
+      this.filterTrigger$.next( filterCreteria);
+      return;
+    }
+
+    // simple filter , perform filtering on cached data
     this.allExpensesState.set(this.allExpensesState().filter(e => e.id !== id));
   }
 
@@ -242,13 +253,12 @@ export class ExpenseService {
         this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
           tap(() => {
             this.updateCacheAfterDelete(id);
-            this.operationInProgressState.set(false);
           }),
           catchError(err => {
             this.operationErrorState.set(`Delete failed: ${this.handleError(err)}`);
-            this.operationInProgressState.set(false);
             return EMPTY;
-          })
+          }),
+          finalize(()=>this.operationInProgressState.set(false))
         )
       )
     );

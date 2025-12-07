@@ -157,14 +157,15 @@ export class ExpenseListComponent {
   }
 
   deleteExpense(expense: Expense): void { 
-    this.expenseService.deleteExpense(expense.id?? 0);
+    if(confirm("Are you sure you want to delete this expense? This action cannot be undone.")){
+      this.expenseService.deleteExpense(expense.id?? 0);
+    }  
   }
 
 
   applyFilter(): void {
     const filterCriteria: FilterCriteria = this.buildFilter();
     this.expenseService.applyFilter(filterCriteria);
-
   }
 
   clearDateFilter(): void {
