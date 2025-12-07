@@ -13,3 +13,7 @@ export interface SignupRequest {
     password:    string;    
     confirmPassword: string;
 }
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+}

@@ -76,16 +76,14 @@ export class ExpenseEditDialogComponent {
     // UI
     // expense type options 
     expenseTypeOptions = signal(Object.values( ExpenseTypeEnum));
+
    // Category options based on exepnse type
     categoryOptions = computed( () => {
-     switch( this.selectedExpenseType() ){
-     case ExpenseTypeEnum.EXPENSE: 
-       return Object.values(ExpenseCategory);
-     case ExpenseTypeEnum.INCOME:
-       return Object.values(IncomeCategory);
-     default:
-       return [];
-    }
+  
+      if( this.selectedExpenseType() === ExpenseTypeEnum.EXPENSE) return Object.values(ExpenseCategory);
+      if( this.selectedExpenseType() === ExpenseTypeEnum.INCOME) return Object.values(IncomeCategory);
+      return [];
+    
     });
     
     constructor() {
@@ -110,7 +108,7 @@ export class ExpenseEditDialogComponent {
     private loadExpense(expense: Expense) : void {
        this.expenseForm.patchValue ({
          id: expense.id,
-         type: this.toExpenseTypeEnum(expense.expenseType),
+         type: expense.expenseType,
          category: this.toCategoryEnum( expense.category) ,
          account: expense.account,
          date: new Date(expense.date),
@@ -125,7 +123,7 @@ export class ExpenseEditDialogComponent {
     
        const expenseData: Expense = {
            id: formValue.id ?? null,
-           expenseType: this.toNumber(formValue.type),
+           expenseType: formValue.type,
            category: formValue.category,
            date: formValue.date? this.dateService.formatLocalDate(formValue.date) : this.dateService.formatLocalDate(new Date()),
            account: formValue.account,
@@ -164,29 +162,6 @@ export class ExpenseEditDialogComponent {
     return '' ; //fallback - empty string
    }
 
-   // maps EpenseTypeEnum type  to number type - 
-   private toNumber(value: ExpenseTypeEnum) : number  {
-    switch( value ){
-      case ExpenseTypeEnum.EXPENSE:
-        return 0;
-      case ExpenseTypeEnum.INCOME:
-        return 1;
-      default: 
-        return 0; // fallback = Expense
-    }
-   }
 
-   // Maps expense number type  to Expense Type Enum 
-   private toExpenseTypeEnum(value: number) : ExpenseTypeEnum {
-    switch( value){
-      case 0:
-        return ExpenseTypeEnum.EXPENSE;
-      case 1: 
-        return ExpenseTypeEnum.INCOME
-      default: 
-        return ExpenseTypeEnum.EXPENSE; // fallback = Expense
-
-    }
-   }
 
 }

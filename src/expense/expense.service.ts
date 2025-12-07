@@ -1,208 +1,260 @@
-import { inject, Injectable, signal } from '@angular/core';
-import { Expense } from './expense.model';
-import { ExpenseData } from './expense.data';
-import { HttpClient } from '@angular/common/http';
+import { inject, Injectable, signal, computed } from '@angular/core';
+import { Expense, FilterCriteria } from './expense.model';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import {
-  BehaviorSubject,
   catchError,
   EMPTY,
-  finalize,
+  map,
   Observable,
-  of,
   shareReplay,
   Subject,
   switchMap,
   tap,
+  debounceTime,
 } from 'rxjs';
 import { HttpErrorService } from '../utils/http-errorservice';
-import { HttpErrorResponse } from '@angular/common/http';
+import { ApiResponseDto } from '../dto/api.responsedto';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { PaginationParams } from '../models/user/user.model';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class ExpenseService {
-  //expenses: Expense[] = [];
-  //expenses = signal<Expense[]>([]);
+  private readonly http = inject(HttpClient);
+  private readonly errorService = inject(HttpErrorService);
+  private readonly baseUrl = `${environment.apiBaseUrl}${environment.endpoints.expenses}`;
 
-  http = inject(HttpClient);
+  // ===== TRIGGERS =====
+  private readonly loadTrigger$ = new Subject<void>();
+  private readonly filterTrigger$ = new Subject<FilterCriteria>();
+  private readonly upsertTrigger$ = new Subject<Expense>();
+  private readonly deleteTrigger$ = new Subject<number>();
 
-  errorService = inject(HttpErrorService);
+  // ===== STATE SIGNALS =====
+  private readonly isLoadingState = signal<boolean>(false);
+  private readonly errorState = signal<string | null>(null);
+  private readonly operationInProgressState = signal<boolean>(false);
+  private readonly operationErrorState = signal<string | null>(null);
+  private readonly filterCriteriaState = signal<FilterCriteria>({});
+  private readonly paginationState = signal<PaginationParams>({ page: 1, pageSize: 50 });
+  private readonly allExpensesState = signal<Expense[]>([]);
 
-  baseUrl = `${environment.apiBaseUrl}${environment.endpoints.expenses}`;
+  // ===== PUBLIC COMPUTED SIGNALS =====
+  readonly isLoading = computed(() => this.isLoadingState());
+  readonly error = computed(() => this.errorState());
+  readonly operationInProgress = computed(() => this.operationInProgressState());
+  readonly operationError = computed(() => this.operationErrorState());
+  readonly filterCriteria = computed(() => this.filterCriteriaState());
+  readonly pagination = computed(() => this.paginationState());
 
-  // === SUbjects for triggering operations === /
-  reloadTrigger$ = new Subject<void>();
-  upsertTrigger$ = new Subject<Expense>();
-  deleteTrigger$ = new Subject<number>();
+  readonly filteredExpenses = computed(() => {
+    const criteria = this.filterCriteriaState();
+    const expenses = this.allExpensesState();
 
-  // == loading and error states == //
-  isLoading = signal<boolean>(false);
-  error = signal<string | null>(null);
-  operationInProgress = signal<boolean>(false);
-  operationError = signal<string | null>(null);
-
-  // === Observable stream for loading expenses ===/
-  private expenses$ = this.reloadTrigger$.pipe(
-    tap(() => {
-      this.isLoading.set(true);
-      this.error.set(null);
-    }),
-    switchMap(() => {
-      return this.http.get<Expense[]>(this.baseUrl).pipe(
-        shareReplay({bufferSize: 1, refCount: true}), // === Cache last result === //
-        tap(() => {
-          this.isLoading.set(false);
-          this.error.set(null);
-        }),
-        catchError((err) => {
-          const errMsg = this.errorHandler(err);
-          this.error.set(`Failed to load expenses: ${errMsg}`);
-          this.isLoading.set(false);
-          return of([] as Expense[]) ;
-        })
-      );
-    })
-  );
-
-  // === Observable stream for upsert Operation === //
-  private upsertResult$ = this.upsertTrigger$.pipe(
-    tap(()=> {
-      this.operationInProgress.set(true),
-      this.operationError.set(null)
-    }),
-    switchMap((expense)=>{
-      console.log("Saving | updating Expense: ", expense);
-      const isUpdate = expense.id !== 0 && expense.id !== undefined && expense.id !== null ; // check wether we update or creat a new expense
-      const req$ = isUpdate ? this.http.put(`${this.baseUrl}/${expense.id}`, expense) : this.http.post(this.baseUrl, expense);
-      return req$.pipe(
-        tap(() => {
-          this.operationInProgress.set(false);
-          this.operationError.set(null);
-          this.reloadTrigger$.next(); // === Trigger reload for refresh list
-        }),
-        catchError((error)=>{
-          const errMsg = this.errorHandler( error );
-          this.operationError.set(`Failed to save expense | {${expense}} : ${errMsg} `);
-          this.operationInProgress.set(false);
-          return EMPTY;
-        })
-      )
-    }),
-  );
-
-  // === Observable stream for delete operation === //
-  deleteResult$ = this.deleteTrigger$.pipe(
-    tap(()=>{
-      this.operationInProgress.set(true);
-      this.operationError.set(null);
-    }),
-    switchMap((id)=>{
-      return this.http.delete(`${this.baseUrl}/${id}`).pipe(
-        tap(()=>{
-          this.operationInProgress.set(false);
-          this.operationError.set(null);
-          this.reloadTrigger$.next(); // === Trigger reload for refresh list
-        }),
-        catchError((error)=>{
-          const errMsg = this.errorHandler(error);
-          this.operationError.set(`Error occured while deleting expense id: ${id}, ${errMsg}`);
-          return EMPTY;
-        })
-      )
-    }),
-
-  );
-
-  // === Convert observables to signal === //
-  expenses = toSignal(this.expenses$, { initialValue: [] });
-  upsertSubscription = toSignal(this.upsertResult$);
-  deleteSubscrition  = toSignal(this.deleteResult$);
-
-  constructor() {
-    // === Trigger reload of expenses === //
-    //this.loadExpenses();
-  }
-
-  // === Trigger reload of expenses === //
-  loadExpenses(): void {
-    //const data = ExpenseData.fetchExpenses(); // in memory mock data
-    // this.expenses.set( data );
-    // this.getExpenses().subscribe({
-    //   next: (data) => {
-    //     console.log('Expenses fetched:', data);
-    //     this.expenses.set(data);
-    //   },
-    //   error: (err) => console.error('Failed to load expenses:', err),
-    // });
-
-    this.reloadTrigger$.next();
-  }
-
-  // getExpenses(): Observable<any> {
-  //   const targetUrl: string = `${this.baseUrl}${environment.endpoints.expenses}`;
-  //   return this.http.get(targetUrl).pipe(
-  //     catchError((err) => {
-  //       const errMsg = this.errorHander(err);
-  //       console.log('Error | getExpenses() | ExpenseService class', errMsg);
-  //       return of([]);
-  //     })
-  //   );
-  // }
-
-  // Add or update an expense
-  upsertExpense(expense: Expense) {
-
-    this.upsertTrigger$.next(expense);
-
-    // this.expenses.update((current) => {
-    //   const index = current.findIndex((e) => e.id === expense.id);
-    //   if (index >= 0) {
-    //     // Update existing
-    //     return [...current.slice(0, index), expense, ...current.slice(index + 1)];
-    //     // Optionally, call your backend API to persist the change
-    //     // this.http.put(`/api/expenses/${expense.id}`, expense).subscribe();
-    //   } else {
-    //     // Add new
-    //     const newExpense = { ...expense, id: Math.max(0, ...current.map((e) => e.id ?? 0)) + 1 };
-    //     return [...current, newExpense];
-    //     // Optionally, call your backend API to persist new Expense
-    //     // this.http.(`/api/expenses/$`, expense).subscribe();
-    //   }
-    // });
-    
-  }
-
-  // Delete an expense
-  deleteExpense(expense: Expense) {
-    // === expesne ID msut be valid === //
-    if( !expense.id ){
-      const error = 'Cannot delete an expense without ID';
-      this.operationError.set(error);
-      return;
+    if (!criteria || Object.keys(criteria).length === 0) {
+      return expenses;
     }
 
-    this.deleteTrigger$.next(expense.id);
+    // Complex filters (backend) take precedence
+    if (this.isComplexFilter(criteria)) {
+      return this.backendFilteredExpenses();
+    }
 
+    // Simple filters (frontend)
+    return expenses.filter(exp => this.matchesCriteria(exp, criteria));
+  });
+
+  readonly expenseCount = computed(() => this.filteredExpenses().length);
+  readonly totalExpenses = computed(() =>
+    this.filteredExpenses().reduce((sum, exp) => sum + exp.amount, 0)
+  );
+
+  // ===== BACKEND FILTERED DATA =====
+  private readonly filteredExpenses$$ = this.filterTrigger$.pipe(
+    debounceTime(300),
+    tap(criteria => {
+      this.filterCriteriaState.set(criteria);
+      this.isLoadingState.set(true);
+      this.errorState.set(null);
+    }),
+    switchMap(criteria =>
+      this.http.post<ApiResponseDto<Expense[]>>(`${this.baseUrl}/filter`, criteria).pipe(
+        map(response => response.data),
+        tap(() => this.isLoadingState.set(false)),
+        catchError(err => {
+          this.errorState.set(`Filter failed: ${this.handleError(err)}`);
+          this.isLoadingState.set(false);
+          return [];
+        })
+      )
+    ),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  private readonly backendFilteredExpenses = toSignal(this.filteredExpenses$$, {
+    initialValue: [] as Expense[],
+  });
+
+  // ===== AUTO-SUBSCRIPTIONS =====
+  private readonly loadSubscription = toSignal(this.createLoadStream());
+  private readonly upsertSubscription = toSignal(this.createUpsertStream());
+  private readonly deleteSubscription = toSignal(this.createDeleteStream());
+
+
+  loadExpenses(): void {
+    this.loadTrigger$.next();
   }
 
-  /**
-   * One-off operation - keep it as an Observable 
-   * @param id - expense ID 
-   * @returns - Expense -success or Null -fail or Expense by ID does not exist
-   */
-  getExpenseById(id: number): Observable<Expense | null> {
-    return this.http.get<Expense | null>(`${this.baseUrl}/${id}}`).pipe(
-      catchError((error)=>{
-        const errMsg = this.errorHandler( error);
-        this.operationError.set(`Failed to fetch expense with ID ${id}, ${errMsg}`);
-        return EMPTY;
+  applyFilter(criteria: FilterCriteria): void {
+    if (this.isComplexFilter(criteria)) {
+      this.filterTrigger$.next(criteria);
+    } else {
+      this.filterCriteriaState.set(criteria);
+    }
+  }
+
+  clearFilter(): void {
+    this.filterCriteriaState.set({});
+  }
+
+  setPagination(page: number, pageSize: number): void {
+    this.paginationState.set({ page, pageSize });
+  }
+
+  upsertExpense(expense: Expense): void {
+    this.upsertTrigger$.next(expense);
+  }
+
+  deleteExpense(id: number): void {
+    if (!id) {
+      this.operationErrorState.set('Cannot delete expense without ID');
+      return;
+    }
+    this.deleteTrigger$.next(id);
+  }
+
+
+  private isComplexFilter(criteria: FilterCriteria): boolean {
+    if( !criteria ) return false;
+   
+    return !!(
+      (criteria.startDate || criteria.endDate) ||
+      (criteria.minAmount !== undefined && criteria.minAmount > 0) ||
+      (criteria.maxAmount !== undefined && criteria.maxAmount > 0)
+    );
+  }
+
+  private matchesCriteria(expense: Expense, criteria: FilterCriteria): boolean {
+
+    if (criteria.searchTerm) {
+      const term = criteria.searchTerm.toLowerCase();
+      if (!expense.category?.toLowerCase().includes(term)) {
+        return false;
+      }
+    }
+
+    if (criteria.category && expense.category !== criteria.category ) return false;
+  
+    if(criteria.expenseType && expense.expenseType !== criteria.expenseType) return false;
+     
+    return true;
+  }
+
+  private updateCacheAfterUpsert(expense: Expense): void {
+    const current = this.allExpensesState();
+    const exists = current.some(e => e.id === expense.id);
+
+    if (!exists) {
+      this.allExpensesState.set([...current, expense]);
+    } else {
+      this.allExpensesState.set(current.map(e => (e.id === expense.id ? expense : e)));
+    }
+  }
+
+  private updateCacheAfterDelete(id: number): void {
+    this.allExpensesState.set(this.allExpensesState().filter(e => e.id !== id));
+  }
+
+  private handleError(err: HttpErrorResponse): string {
+    return err.error?.message || this.errorService.formatError(err);
+  }
+
+  // ===== STREAM CREATION =====
+  private createLoadStream(): Observable<Expense[]> {
+    return this.loadTrigger$.pipe(
+      tap(() => {
+        this.isLoadingState.set(true);
+        this.errorState.set(null);
+      }),
+      switchMap(() =>
+        this.http.get<ApiResponseDto<Expense[]>>(this.baseUrl).pipe(
+          map(response => response.data),
+          tap(data => {
+            this.allExpensesState.set(data);
+            this.isLoadingState.set(false);
+          }),
+          catchError(err => {
+            this.errorState.set(`Failed to load expenses: ${this.handleError(err)}`);
+            this.isLoadingState.set(false);
+            return [];
+          })
+        )
+      ),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
+  }
+
+  private createUpsertStream(): Observable<Expense> {
+    return this.upsertTrigger$.pipe(
+      tap(() => {
+        this.operationInProgressState.set(true);
+        this.operationErrorState.set(null);
+      }),
+      switchMap(expense => {
+        const isUpdate = !!expense.id;
+        const request$ = isUpdate
+          ? this.http.put<ApiResponseDto<Expense>>(`${this.baseUrl}/${expense.id}`, expense)
+          : this.http.post<ApiResponseDto<Expense>>(this.baseUrl, expense);
+
+        return request$.pipe(
+          map(response => response.data),
+          tap(savedExpense => {
+            this.updateCacheAfterUpsert(savedExpense);
+            this.operationInProgressState.set(false);
+          }),
+          catchError(err => {
+            this.operationErrorState.set(`Failed to save: ${this.handleError(err)}`);
+            this.operationInProgressState.set(false);
+            return EMPTY;
+          })
+        );
       })
-    )
+    );
   }
 
-  private errorHandler(err: HttpErrorResponse): string {
-    return this.errorService.formatError(err);
+  private createDeleteStream(): Observable<void> {
+    return this.deleteTrigger$.pipe(
+      tap(() => {
+        this.operationInProgressState.set(true);
+        this.operationErrorState.set(null);
+      }),
+      switchMap(id =>
+        this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
+          tap(() => {
+            this.updateCacheAfterDelete(id);
+            this.operationInProgressState.set(false);
+          }),
+          catchError(err => {
+            this.operationErrorState.set(`Delete failed: ${this.handleError(err)}`);
+            this.operationInProgressState.set(false);
+            return EMPTY;
+          })
+        )
+      )
+    );
   }
 }
+
+
+
+

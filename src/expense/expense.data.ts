@@ -1,10 +1,10 @@
-import { Expense } from "./expense.model";
+import { Expense, ExpenseTypeEnum, ExpenseTypeFilter } from "./expense.model";
 
 export class ExpenseData {
 
     static expenses: Expense[] = [{
         id: 1,
-        expenseType: 1,
+        expenseType: ExpenseTypeEnum.INCOME,
         date: '2025-10-20',
         amount: 10000,
         category: 'Salary',
@@ -14,7 +14,7 @@ export class ExpenseData {
 
     {
         id: 2,
-        expenseType: 2,
+        expenseType: ExpenseTypeEnum.EXPENSE,
         date: '2025-10-26',
         amount: 200,
         category: 'Food',
@@ -23,7 +23,7 @@ export class ExpenseData {
     },
     {
         id: 3,
-        expenseType: 2,
+        expenseType: ExpenseTypeEnum.EXPENSE,
         date: '2025-10-10',
         amount: 2000,
         category: 'Apparel',
@@ -32,7 +32,7 @@ export class ExpenseData {
     },
     {
         id: 4,
-        expenseType: 2,
+        expenseType: ExpenseTypeEnum.EXPENSE,
         date: '2025-10-22',
         amount: 3000,
         category: 'Farm',

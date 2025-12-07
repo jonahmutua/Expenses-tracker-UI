@@ -85,7 +85,7 @@
         <ng-container matColumnDef="type">
           <th mat-header-cell *matHeaderCellDef>Expense Type</th>
           <td mat-cell *matCellDef="let element">
-            {{ element.expenseType === 0 || element.expenseType === '0' ? 'Expense' : 'Income' }}
+            {{ element.expenseType  }}
           </td>
         </ng-container>
 

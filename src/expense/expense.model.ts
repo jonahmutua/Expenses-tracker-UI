@@ -4,7 +4,7 @@ export interface Expense {
     
     id?: number;
 
-    expenseType: number;
+    expenseType: ExpenseTypeEnum;
 
     date: string;
 
@@ -29,15 +29,15 @@ export interface ExpenseDialogData {
 
 /* Epxense type Enum */
 export enum ExpenseTypeEnum {
-  EXPENSE = 'Expense',
-  INCOME  = 'Income'
+  EXPENSE = 'EXPENSE',
+  INCOME  = 'INCOME'
 }
 
 
 export enum ExpenseTypeFilter {
   ALL     = 'All',
-  EXPENSE = 'Expense',
-  INCOME  = 'Income'
+  EXPENSE = 'EXPENSE',
+  INCOME  = 'INCOME'
 }
 
 /* Expense Categories */
@@ -88,4 +88,18 @@ export interface ExpenseForm {
   account:    FormControl<string | null>;
   amount:     FormControl<number>;
   note:       FormControl<string | null>;
+}
+
+export interface FilterCriteria {
+  expenseType?: ExpenseTypeEnum;
+  searchTerm?: string;
+  month?: string;
+  category?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  dateRange?: { start: Date; end: Date; };
+  sortBy?: 'date' | 'amount' | 'description';
+  sortOrder?: 'asc' | 'desc';
 }

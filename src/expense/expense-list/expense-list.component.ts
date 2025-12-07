@@ -10,26 +10,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
-import { Expense, ExpenseCategory, ExpenseFilterForm, ExpenseTypeFilter, IncomeCategory } from '../expense.model';
+import { Expense, ExpenseCategory, ExpenseFilterForm, ExpenseTypeEnum, ExpenseTypeFilter, FilterCriteria, IncomeCategory } from '../expense.model';
 import { SnackbarService } from '../../utils/snackbar.service';
 import { ExpenseService } from '../../expense/expense.service';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ExpenseEditDialogComponent } from '../../expense/expense-edit-dialog/expense-edit-dialog.component';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable } from 'rxjs';
+import { Observable, UnsubscriptionError } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { RouterModule, Router } from '@angular/router';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
+import { DateUtilService } from '../../utils/date-util.service';
 
-interface Transaction {
-  txnId: string;
-  itemId: string;
-  itemName: string;
-  type: 'IN' | 'OUT';
-  quantity: number;
-  dateTime: string;
-}
 
 @Component({
   selector: 'app-my-transactions',
@@ -60,6 +53,7 @@ export class ExpenseListComponent {
   expenseService = inject(ExpenseService);
   snackbarService = inject(SnackbarService);
   authService = inject(AuthService);
+  dateUtilService = inject(DateUtilService);
   router = inject(Router);
   private dialog = inject(MatDialog);
   private injector = inject(Injector);
@@ -68,6 +62,7 @@ export class ExpenseListComponent {
 
   filterForm : FormGroup<ExpenseFilterForm> = this.fb.group<ExpenseFilterForm>({
     type: this.fb.control(ExpenseTypeFilter.ALL, {nonNullable: true}),
+
     category: this.fb.control('', {nonNullable: true}),
     fromDate: this.fb.control<Date | null>(null),
     toDate: this.fb.control<Date | null> (null) 
@@ -83,71 +78,47 @@ export class ExpenseListComponent {
 
 
   selectedExpenseType = computed( ()=> this.filterValues().type);
+
   selectedCategory = computed(()=> this.filterValues().category);
-  dateRange = computed( () => ({
-    from: this.filterValues().fromDate,
-    to:   this.filterValues().toDate,
-  }));
 
-  // Category Options ( Dynamic based on expense Type )
+  selectedStartDate = computed(()=> this.filterValues().fromDate);
+
+  selectedEndDate = computed(()=> this.filterValues().toDate);
+
+  // Expenses type list 
+  expenseTypeOptions = signal<ExpenseTypeFilter[]>(Object.values(ExpenseTypeFilter));
+
+  // Category Options ( popullaates Dynamically based on expense-Type )
   categoryOptions = computed( ()=> {
-      switch (this.selectedExpenseType()) {
-      case ExpenseTypeFilter.EXPENSE:
-        return Object.values(ExpenseCategory);
-      case ExpenseTypeFilter.INCOME:
-        return Object.values(IncomeCategory);
-      default:
-        return [];
-    }
-  })
-
-  
-  editedExpense = signal<Expense | null>(null);
-
-  filteredExpenses = computed(() => {
-    const allExpenses = this.expenseService.expenses();
-    const selectedType = this.selectedExpenseType() ?? ExpenseTypeFilter.ALL;
-    const category =  this.selectedCategory() ?? '';
-    const { from, to } = this.dateRange();
-
-    return allExpenses.filter( expense => 
-      this.typeMatches( expense, selectedType) &&
-      this.categoryMatches(expense, category)  &&
-      this.dateMatches(expense, from ?? null, to ?? null) 
-
-    );
-
+    if( this.selectedExpenseType() === ExpenseTypeFilter.EXPENSE )  return Object.values(ExpenseCategory);
+    if( this.selectedExpenseType() === ExpenseTypeFilter.INCOME )  return Object.values(IncomeCategory);
+    return [];
   });
-
 
   // UI data
   displayedColumns: string[] = ['type', 'category', 'amount', 'lastUpdatedAt', 'note', 'actions'];
+  
+  // States 
+  editedExpense = signal<Expense | null>(null);
 
-  expenseTypeOptions = signal<ExpenseTypeFilter[]>(Object.values(ExpenseTypeFilter));
- 
-
-  // Transaction data (should this be moved to a service?)
-  transactions: Transaction[] = [
-    { txnId: 'TXN5014', itemId: 'STK20250014', itemName: 'Floor Cleaner 1L', type: 'OUT', quantity: 8, dateTime: '2025-11-01T16:15:00' },
-    { txnId: 'TXN0028', itemId: 'STK20250004', itemName: 'Ball Pen', type: 'IN', quantity: 30, dateTime: '2025-11-01T14:06:05' },
-    { txnId: 'TXN5012', itemId: 'STK20250012', itemName: 'Notebook Bag', type: 'OUT', quantity: 15, dateTime: '2025-11-01T13:20:00' },
-  ];
-
-  filteredTransactions: Transaction[] = [...this.transactions];
+  filteredExpenses = computed( () => this.expenseService.filteredExpenses() );
+  
 
   constructor() {
-    // Load expenses on component init
-    // The AuthGuard ensures we're authenticated before getting here
     this.expenseService.loadExpenses();
-
-
+  
     // Watch when expense Type Option changes and sync with form 
     effect( () => {
       this.selectedExpenseType();
-
       // Reset category when switching type 
       this.filterForm.get('category')?.setValue('');
     });
+
+    // Apply filter when form values change
+    effect(() => {
+      this.filterValues();
+      this.applyFilter();
+    })
 
   }
 
@@ -185,38 +156,21 @@ export class ExpenseListComponent {
     });
   }
 
-  deleteExpense(expense: Expense): void {
-    this.expenseService.deleteExpense(expense);
+  deleteExpense(expense: Expense): void { 
+    this.expenseService.deleteExpense(expense.id?? 0);
   }
 
-  // === Filter Management ===
 
   applyFilter(): void {
-    // const { type, itemId, fromDate, toDate } = this.filterForm.value;
-    // this.filteredTransactions = this.transactions.filter(t => {
-    //   const matchType = type === 'ALL' || t.type === type;
-    //   const matchItem =
-    //     !itemId ||
-    //     t.itemId.toLowerCase().includes(itemId.toLowerCase()) ||
-    //     t.itemName.toLowerCase().includes(itemId.toLowerCase());
-    //   const date = new Date(t.dateTime);
-    //   const from = fromDate ? new Date(fromDate) : null;
-    //   const to = toDate ? new Date(toDate) : null;
-    //   const matchDate = (!from || date >= from) && (!to || date <= to);
-    //   return matchType && matchItem && matchDate;
-    // });
+    const filterCriteria: FilterCriteria = this.buildFilter();
+    this.expenseService.applyFilter(filterCriteria);
 
-    
   }
 
   clearDateFilter(): void {
     this.fromDateCtrl.setValue(null);
     this.toDateCtrl.setValue(null);
-  //   this.filterForm.reset({ type: 'ALL', itemId: '', fromDate: '', toDate: '' });
-  //   this.filteredTransactions = [...this.transactions];
   }
-
-  // === Export ===
 
   exportTransactions(): void {
     // const header = ['Txn ID', 'Item ID', 'Item Name', 'Type', 'Quantity', 'Date/Time'];
@@ -231,7 +185,6 @@ export class ExpenseListComponent {
     // URL.revokeObjectURL(url);
   }
 
-  // === Logout (if you have a logout button in the template) ===
 
   logout(): void {
     if (this.authService.isAuthenticated()) {
@@ -240,51 +193,34 @@ export class ExpenseListComponent {
     }
   }
 
-// Mapping numeric values to ExpenseTypeFilter enum
-private numericTypeMap : Record<number, ExpenseTypeFilter> = {
-  999: ExpenseTypeFilter.ALL,
-  0: ExpenseTypeFilter.EXPENSE,
-  1: ExpenseTypeFilter.INCOME
-};
 
-  private typeMatches(expense: Expense, selectedType: ExpenseTypeFilter) : boolean {
-    const mappedType = this.numericTypeMap[expense.expenseType];
-    return selectedType === ExpenseTypeFilter.ALL || mappedType === selectedType  as string ;
-  }
+private buildFilter(): FilterCriteria {
 
-  private categoryMatches(exepnse: Expense, selectedCategory: ExpenseCategory | IncomeCategory | '') : boolean {
-    return selectedCategory === '' || exepnse.category === selectedCategory as string;
-  }
+    const start = this.selectedStartDate();
+    const end = this.selectedEndDate();
+    const exType = this.selectedExpenseType() ;
 
-  // Compares Dates only and ignores Time
-  private dateMatches(expense: Expense, from: Date | null, to: Date | null): boolean {
-    if (!from && !to) return true;
-    
-    const expDate = new Date(expense.date);
-    const expDateOnly = this.getDateOnly(expDate);
-    const fromDateOnly = from ? this.getDateOnly(from) : null;
-    const toDateOnly = to ? this.getDateOnly(to) : null;
+    const filterCreteria: FilterCriteria = {
 
-    // Compare as strings (DD-MM-YYYY format)
-    const fromMatch = !fromDateOnly || expDateOnly >= fromDateOnly;
-    const toMatch = !toDateOnly || expDateOnly <= toDateOnly;
+      expenseType: this.mapExpenseFilterToExpenseEnum( exType ) , 
+      category: this.selectedCategory() ?? undefined,
+      startDate: start ? this.dateUtilService.formatLocalDate(start) : undefined,
+      endDate: end ? this.dateUtilService.formatLocalDate(end) : undefined,
+      //minAmount: 20,
+      //maxAmount: 500,
+      //sortBy: 'date',
+      //sortOrder: 'asc'
+    }
 
-    return fromMatch && toMatch;
-  }
+  return filterCreteria;
+}
 
-  private getDateDaysAgo(days: number) : Date {
-    const date = new Date();
-    date.setDate( date.getDate() - days);
-    return date;
-  }
+private mapExpenseFilterToExpenseEnum(filter: ExpenseTypeFilter | undefined) : ExpenseTypeEnum | undefined {
 
-  // Converts Date object to dd-mm-yyyy format
-  private getDateOnly(date: Date): string {
-  const d = new Date(date);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
+  if (filter === ExpenseTypeFilter.EXPENSE) return ExpenseTypeEnum.EXPENSE;
+  if (filter === ExpenseTypeFilter.INCOME) return ExpenseTypeEnum.INCOME;
+  return undefined; // ALL or undefined
+
 }
 
 }
