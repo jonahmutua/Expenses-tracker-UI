@@ -1,27 +1,37 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from '../auth/login/login.component';
-import { SignupComponent } from '../auth/signup/signup.component';
-import { ExpenseListComponent } from '../expense/expense-list/expense-list.component';
-import { authGuard } from '../auth/auth-guard';
+import { LoginComponent } from './auth/login/login.component';
+import { SignupComponent } from './auth/signup/signup.component';
+import { ExpenseListComponent } from './expense/expense-list/expense-list.component';
+import { authChildGuard, authGuard } from './auth/auth-guard';
 import { HomeComponent, } from './home/home.component';
-import { loginRedirectGuard } from '../auth/login/login-redirect-guard';
-import { ReportComponent } from '../expense/expense-report/expense-report';
+import { loginRedirectGuard } from './auth/login/login-redirect-guard';
+import { ReportComponent } from './expense/expense-report/expense-report';
+import { MainContentComponent } from './shared/components/app-main-content/app-main-content.component';
+import { Component } from '@angular/core';
 
 export const routes: Routes = [
-    {path: 'login', component: LoginComponent, canActivate: [loginRedirectGuard]},
-    {path: 'register', component: SignupComponent},
-
-    {path: 'home',
-        component: HomeComponent,
-        canActivate: [authGuard],
-        children: [
-            {path: '', redirectTo: 'expenses', pathMatch: 'full' }, // default path in home 
-            {path: 'expenses', component: ExpenseListComponent},
-            {path: 'report', component: ReportComponent},
-        ]
-    },
-
     { path: '', redirectTo: 'home', pathMatch: 'full' }, // top-level redirect to home
+    {path: 'home', 
+        component: HomeComponent,
+        children: [
+            {path: '' , component: MainContentComponent},
+            {path: 'login', component: LoginComponent},
+            {path: 'expenses', component: ExpenseListComponent},
+            {path: '**', redirectTo: 'home' }]},
+
+    // {path: 'login', component: LoginComponent, canActivate: [loginRedirectGuard]},
+    // {path: 'register', component: SignupComponent},
+    // {path: 'home',
+    //     component: HomeComponent,
+    //     canActivate: [authGuard],
+    //     canActivateChild: [authChildGuard],
+    //     children: [
+    //         {path: '', redirectTo: 'expenses', pathMatch: 'full' }, // default path in home 
+    //         {path: 'reports', component: ReportComponent},
+    //         {path: 'expenses', component: ExpenseListComponent},
+    //     ]
+    // },
+
     { path: '**', redirectTo: 'home' }, // catch-all
 
     /*

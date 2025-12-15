@@ -1,0 +1,16 @@
+<!--sidebar.component.html -->
+<mat-sidenav-container class="sidenav-container">
+  <mat-sidenav mode="side" opened class="sidenav">
+    <!-- Tool Bar -->
+    <app-navbar></app-navbar>
+    <mat-nav-list>
+      <a mat-list-item routerLink="/home">Dashboard</a>
+      <a mat-list-item routerLink="/home/expenses">Expenses</a>
+      <a mat-list-item routerLink="/home/report">Reports</a>
+      <a mat-list-item routerLink="/home/profile">Profile</a>
+    </mat-nav-list>
+  </mat-sidenav>
+  <mat-sidenav-content>
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

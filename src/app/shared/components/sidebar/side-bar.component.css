@@ -1,0 +1,15 @@
+/* sidebar.component.css */
+.sidenav-container {
+  height: 100vh;
+  margin-top: 64px; /* account for navbar height */
+}
+
+.sidenav {
+  width: 220px;
+  background-color: #f5f5f5;
+}
+
+.active {
+  font-weight: bold;
+  color: #1976d2;
+}

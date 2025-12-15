@@ -1,0 +1,17 @@
+<em-auth-form [mode]="'login'" (formSubmit)="login($event)">
+
+   <!-- Error message  -->
+  @if( loginErrorSignal() ){
+    <div >
+    <mat-error> {{ loginErrorSignal()?.includes('Bad') ? 'Invalid credentials!' : loginErrorSignal()}}</mat-error>
+    </div>
+  }
+
+  <!-- Already Registered -->
+  <div class="text-center mt-3">
+    <span>Don't have an account?</span>
+    <a routerLink="/register" class="text-primary fw-semibold"> Register here. </a>
+  </div>
+  
+</em-auth-form>
+

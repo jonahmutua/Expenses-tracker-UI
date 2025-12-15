@@ -1,0 +1,15 @@
+<mat-toolbar color="primary">
+  <button  mat-icon-button class="sidenav-toggle" (click) = "onToggleSideNav()"  >
+    <mat-icon>menu</mat-icon>
+  </button>
+   
+  <span>Expenses Manager</span>
+
+  <span class="spacer"></span>
+  
+  <mat-icon matListItemIcon>person</mat-icon>
+  <span class="user-info">
+    {{ userName() }} &nbsp;|&nbsp; {{ currentDate | date : 'dd MMM yyyy' }}
+  </span>
+
+</mat-toolbar>

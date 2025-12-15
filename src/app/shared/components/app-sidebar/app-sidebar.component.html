@@ -1,0 +1,51 @@
+<mat-drawer-container class="em-sidenav-container" autosize>
+  <mat-drawer #drawer class="em-sidenav mat-elevation-z10"
+             [mode]="isSmallScreen() ? 'over' : 'side'" 
+             [opened]="!isSmallScreen()">
+    <mat-toolbar color="primary">
+        <span>Menu</span>
+    </mat-toolbar>
+
+    <mat-nav-list class="custom-list-item"  >
+      <!-- Dashboaard -->
+      <a mat-list-item routerLink="/dashboard" >
+        <mat-icon mat-list-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <!--  expenses list -->
+      @if( isAuthenticated() ){
+      <a mat-list-item routerLink="/home/expenses">
+        <mat-icon matListIcon>payment</mat-icon>
+        <span>Expenses</span>
+      </a>
+      }
+      
+       <!--  User Profile  -->
+      @if( isAuthenticated() ){
+      <a mat-list-item routerLink="/home/profile">
+        <mat-icon matListIcon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+      }
+
+       <!--  login  -->
+      <a mat-list-item (click)="onAuthAction()" >
+        <mat-icon matListIcon>{{ authIcon() }}</mat-icon>
+        <span>{{ authLabel() }}</span>
+      </a>
+      
+    </mat-nav-list>
+
+    
+   
+  </mat-drawer>
+
+ <mat-drawer-content>
+    <app-toolbar class="em-toolbar" (sideNavToggled)="drawer.toggle()"></app-toolbar>
+    <div class="wrapper">
+      <router-outlet></router-outlet>
+    </div>
+  </mat-drawer-content>
+
+</mat-drawer-container>

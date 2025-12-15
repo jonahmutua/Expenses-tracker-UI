@@ -1,0 +1,39 @@
+:root{
+    --icon-width: 56px;
+}
+
+.sidenav-toggle {
+    display: none;
+    padding: 0%;
+    margin: 8px;
+    min-width: var(--icon-width);
+
+}
+
+ @media( max-width: 720px) {
+    .sidenav-toggle{
+         display: flex;
+         align-items: center;
+         justify-content: center;
+    }
+       
+}
+
+.user-info {
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
+  font-size: small;
+}
+
+.sidenav-toggle .mat-icon{
+    font-size: 30px !important;
+    height: var(--icon-width) !important;
+    width: var(--icon-width) !important;
+    line-height: var(--icon-width) !important;
+    color: white !important;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}

@@ -1,6 +1,18 @@
+
 # ExpenseTracker
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.6.
+
+## Project Structure 
+src/app/
+  core/                 // global services, interceptors, guards
+  shared/               // reusable UI components, directives, pipes
+  auth/                 // authentication feature
+  home/                 // main dashboard feature
+  expenses/             // expense management feature
+  reports/              // reporting & analytics feature
+  profile/              // user profile & settings
+  newFeature/           // 
 
 ## Development server
 

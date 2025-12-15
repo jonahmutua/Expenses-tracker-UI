@@ -1,0 +1,14 @@
+<em-auth-form [mode]="'signup'" (formSubmit)="register($event)">
+   <!-- Error message  -->
+  @if( errorState ){
+    <div >
+    <mat-error> {{ message }}</mat-error>
+    </div>
+  }
+  <!-- Already Registered -->
+  <div class="text-center mt-3">
+    <span>Already have an account?</span>
+    <a routerLink="/login" class="text-primary fw-semibold">Login here. </a>
+  </div>
+  
+</em-auth-form>
