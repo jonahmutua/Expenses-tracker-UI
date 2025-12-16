@@ -177,3 +177,9 @@ th.mat-header-cell {
   gap: 2px; /* space between button and label */
 }
 
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+}

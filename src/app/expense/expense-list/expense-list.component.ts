@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, Injector, runInInjectionContext, Signal, signal, ViewEncapsulation } from '@angular/core';
+import { Component, computed, effect, inject, Injector, OnInit, runInInjectionContext, Signal, signal, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormControl } from '@angular/forms';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -22,6 +22,7 @@ import { RouterModule, Router } from '@angular/router';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { DateUtilService } from '../../shared/utils/date-util.service';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 
 
 @Component({
@@ -43,13 +44,14 @@ import { DateUtilService } from '../../shared/utils/date-util.service';
     RouterModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatProgressSpinnerModule,
 ],
   templateUrl: './expense-list.component.html',
   styleUrls: ['./expense-list.component.css'],
   encapsulation: ViewEncapsulation.None , /* let us override angular material default syles */
 
 })
-export class ExpenseListComponent {
+export class ExpenseListComponent implements OnInit {
   expenseService = inject(ExpenseService);
   snackbarService = inject(SnackbarService);
   authService = inject(AuthService);
@@ -85,6 +87,7 @@ export class ExpenseListComponent {
 
   selectedEndDate = computed(()=> this.filterValues().toDate);
 
+
   // Expenses type list 
   expenseTypeOptions = signal<ExpenseTypeFilter[]>(Object.values(ExpenseTypeFilter));
 
@@ -103,9 +106,10 @@ export class ExpenseListComponent {
 
   filteredExpenses = computed( () => this.expenseService.filteredExpenses() );
   
+  isLoading = computed( () => this.expenseService.isLoading());
 
   constructor() {
-    this.expenseService.loadExpenses();
+   //this.expenseService.loadExpenses();
   
     // Watch when expense Type Option changes and sync with form 
     effect( () => {
@@ -120,6 +124,9 @@ export class ExpenseListComponent {
       this.applyFilter();
     })
 
+  }
+  ngOnInit(): void {
+     //this.expenseService.loadExpenses();;
   }
 
   // === Dialog Management ===

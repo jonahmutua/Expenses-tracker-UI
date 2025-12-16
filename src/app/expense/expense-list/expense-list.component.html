@@ -77,6 +77,7 @@
 
     <mat-card>
       @if( filteredExpenses() && filteredExpenses().length > 0){
+      @if( !isLoading() ){
       <table
         mat-table
         [dataSource]="filteredExpenses()"
@@ -124,12 +125,19 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
       </table>
+      }@else {
+        <div class="spinner">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+        
+      }
       }@else{
       <!-- No expeses -->
       <div class="no-expenses">
         <mat-icon color="accent">info</mat-icon>
         No expenses to show
       </div>
+      
       }
     </mat-card>
 

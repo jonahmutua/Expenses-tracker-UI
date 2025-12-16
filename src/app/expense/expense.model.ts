@@ -1,4 +1,5 @@
 import { FormControl } from "@angular/forms";
+import { ApiResponseDto } from "../dto/api.responsedto";
 
 export interface Expense {
     
@@ -103,3 +104,27 @@ export interface FilterCriteria {
   sortBy?: 'date' | 'amount' | 'description';
   sortOrder?: 'asc' | 'desc';
 }
+
+
+export interface ExpenseState {
+  isLoading: boolean;
+  error: string | null;
+  // operationProgress: boolean;
+  // operationError: string | null;
+  filter: FilterCriteria;
+  //pagination: {page: number, pageSize: number};
+  expenses: Expense[];
+  backendFiltered: Expense[];
+}
+
+export type ExpenseAction = 
+  | { type: 'load' }
+  | { type: 'filter'; criteria: FilterCriteria }
+  | { type: 'upsert'; expense: Expense }
+  | { type: 'delete'; id: number}
+
+
+export type ExpenseActionResult = 
+  | ApiResponseDto<Expense[]>
+  | ApiResponseDto<Expense>
+  | ApiResponseDto<void> ;
